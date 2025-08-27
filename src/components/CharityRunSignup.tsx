@@ -88,48 +88,51 @@ export const CharityRunSignup = () => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
+    <div className="w-full">
+      <div className="text-center mb-6 px-2">
+        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
           Charity Run Anmeldung
         </h1>
-        <p className="text-lg text-muted-foreground">
-          Melden Sie sich für unseren Charity Run an und unterstützen Sie einen guten Zweck!
+        <p className="text-sm sm:text-base text-muted-foreground">
+          Melden Sie sich für unseren Charity Run an!
         </p>
       </div>
 
       <Card className="shadow-card bg-gradient-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Anmeldung
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Wählen Sie Ihren Anmeldungstyp und füllen Sie das Formular aus
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="einzelanmeldung" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Einzelanmeldung
+        <CardContent className="px-3 sm:px-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+            <TabsList className="grid w-full grid-cols-3 h-auto p-1">
+              <TabsTrigger value="einzelanmeldung" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-1.5 px-1 sm:px-3">
+                <User className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Einzelanmeldung</span>
+                <span className="sm:hidden">Einzel</span>
               </TabsTrigger>
-              <TabsTrigger value="team" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Ganzes Team
+              <TabsTrigger value="team" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-1.5 px-1 sm:px-3">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Ganzes Team</span>
+                <span className="sm:hidden">Team</span>
               </TabsTrigger>
-              <TabsTrigger value="kinderlauf" className="flex items-center gap-2">
-                <Baby className="h-4 w-4" />
-                Kinderlauf
+              <TabsTrigger value="kinderlauf" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-1.5 px-1 sm:px-3">
+                <Baby className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Kinderlauf</span>
+                <span className="sm:hidden">Kinder</span>
               </TabsTrigger>
             </TabsList>
 
             {/* Einzelanmeldung */}
-            <TabsContent value="einzelanmeldung">
+            <TabsContent value="einzelanmeldung" className="mt-4 sm:mt-6">
               <Form {...einzelanmeldungForm}>
-                <form onSubmit={einzelanmeldungForm.handleSubmit(onSubmitEinzelanmeldung)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={einzelanmeldungForm.handleSubmit(onSubmitEinzelanmeldung)} className="space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={einzelanmeldungForm.control}
                       name="first_name"
@@ -172,24 +175,26 @@ export const CharityRunSignup = () => {
                     )}
                   />
 
-                  <FormField
-                    control={einzelanmeldungForm.control}
-                    name="age"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Alter *</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="25" 
-                            {...field} 
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={einzelanmeldungForm.control}
+                      name="age"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Alter *</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="25" 
+                              {...field} 
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={einzelanmeldungForm.control}
@@ -204,15 +209,15 @@ export const CharityRunSignup = () => {
                           <RadioGroup
                             onValueChange={field.onChange}
                             value={field.value}
-                            className="flex flex-col space-y-2"
+                            className="flex flex-col space-y-3"
                           >
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:bg-accent/50 transition-colors">
                               <RadioGroupItem value="11:00" id="time1" />
-                              <Label htmlFor="time1">11:00 Uhr - Durchlauf 1</Label>
+                              <Label htmlFor="time1" className="text-sm sm:text-base cursor-pointer flex-1">11:00 Uhr - Durchlauf 1</Label>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:bg-accent/50 transition-colors">
                               <RadioGroupItem value="14:30" id="time2" />
-                              <Label htmlFor="time2">14:30 Uhr - Durchlauf 2</Label>
+                              <Label htmlFor="time2" className="text-sm sm:text-base cursor-pointer flex-1">14:30 Uhr - Durchlauf 2</Label>
                             </div>
                           </RadioGroup>
                         </FormControl>
@@ -230,9 +235,9 @@ export const CharityRunSignup = () => {
             </TabsContent>
 
             {/* Team Anmeldung */}
-            <TabsContent value="team">
+            <TabsContent value="team" className="mt-4 sm:mt-6">
               <Form {...teamForm}>
-                <form onSubmit={teamForm.handleSubmit(onSubmitTeam)} className="space-y-6">
+                <form onSubmit={teamForm.handleSubmit(onSubmitTeam)} className="space-y-4 sm:space-y-6">
                   <FormField
                     control={teamForm.control}
                     name="team_name"
@@ -247,7 +252,7 @@ export const CharityRunSignup = () => {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={teamForm.control}
                       name="team_leader_name"
@@ -310,15 +315,15 @@ export const CharityRunSignup = () => {
                           <RadioGroup
                             onValueChange={field.onChange}
                             value={field.value}
-                            className="flex flex-col space-y-2"
+                            className="flex flex-col space-y-3"
                           >
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:bg-accent/50 transition-colors">
                               <RadioGroupItem value="11:00" id="team-time1" />
-                              <Label htmlFor="team-time1">11:00 Uhr - Durchlauf 1</Label>
+                              <Label htmlFor="team-time1" className="text-sm sm:text-base cursor-pointer flex-1">11:00 Uhr - Durchlauf 1</Label>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:bg-accent/50 transition-colors">
                               <RadioGroupItem value="14:30" id="team-time2" />
-                              <Label htmlFor="team-time2">14:30 Uhr - Durchlauf 2</Label>
+                              <Label htmlFor="team-time2" className="text-sm sm:text-base cursor-pointer flex-1">14:30 Uhr - Durchlauf 2</Label>
                             </div>
                           </RadioGroup>
                         </FormControl>
@@ -336,10 +341,10 @@ export const CharityRunSignup = () => {
             </TabsContent>
 
             {/* Kinderlauf */}
-            <TabsContent value="kinderlauf">
+            <TabsContent value="kinderlauf" className="mt-4 sm:mt-6">
               <Form {...kinderlaufForm}>
-                <form onSubmit={kinderlaufForm.handleSubmit(onSubmitKinderlauf)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={kinderlaufForm.handleSubmit(onSubmitKinderlauf)} className="space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={kinderlaufForm.control}
                       name="child_first_name"
@@ -389,7 +394,7 @@ export const CharityRunSignup = () => {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={kinderlaufForm.control}
                       name="parent_name"
@@ -418,9 +423,9 @@ export const CharityRunSignup = () => {
                     />
                   </div>
 
-                  <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
-                    <p className="text-sm text-muted-foreground">
-                      <Baby className="inline h-4 w-4 mr-1" />
+                  <div className="p-3 sm:p-4 bg-accent/10 rounded-lg border border-accent/20">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      <Baby className="inline h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                       Der Kinderlauf findet um 10:00 Uhr statt und ist für Kinder von 6-15 Jahren geeignet.
                     </p>
                   </div>
