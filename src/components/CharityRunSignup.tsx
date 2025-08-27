@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Users, User, Baby, Clock, Check } from "lucide-react";
+import { Users, User, Baby, Clock, Check, Plus, Minus, UserPlus, Phone } from "lucide-react";
 
 // Validation schemas
 const einzelanmeldungSchema = z.object({
@@ -22,24 +23,63 @@ const einzelanmeldungSchema = z.object({
   start_time: z.enum(["11:00", "14:30"], {
     required_error: "Bitte wählen Sie eine Startzeit",
   }),
+  join_existing_team: z.boolean().default(false),
+  team_name: z.string().optional(),
+  team_id: z.string().optional(),
+}).refine((data) => {
+  if (data.join_existing_team) {
+    return data.team_name && data.team_name.length >= 2 && data.team_id && data.team_id.length >= 1;
+  }
+  return true;
+}, {
+  message: "Teamname und Team-ID sind erforderlich",
+  path: ["team_name"],
+});
+
+const teamMemberSchema = z.object({
+  first_name: z.string().min(2, "Vorname erforderlich"),
+  last_name: z.string().min(2, "Nachname erforderlich"),
+  email: z.string().email("Gültige E-Mail erforderlich"),
+  age: z.number().min(16, "Mindestalter 16 Jahre").max(99, "Maximalalter 99 Jahre"),
 });
 
 const teamSchema = z.object({
   team_name: z.string().min(2, "Teamname muss mindestens 2 Zeichen haben"),
   team_leader_name: z.string().min(2, "Name des Teamleiters erforderlich"),
   team_leader_email: z.string().email("Bitte geben Sie eine gültige E-Mail-Adresse ein"),
-  team_size: z.number().min(2, "Team muss mindestens 2 Personen haben").max(10, "Maximal 10 Personen pro Team"),
+  use_leader_email_for_all: z.boolean().default(false),
+  team_members: z.array(teamMemberSchema).min(1, "Mindestens ein Teammitglied erforderlich"),
   start_time: z.enum(["11:00", "14:30"], {
     required_error: "Bitte wählen Sie eine Startzeit",
   }),
 });
 
+const childSchema = z.object({
+  first_name: z.string().min(2, "Vorname erforderlich"),
+  last_name: z.string().min(2, "Nachname erforderlich"),
+  age: z.number().min(1, "Mindestalter 1 Jahr").max(9, "Maximalalter 9 Jahre"),
+});
+
 const kinderlaufSchema = z.object({
-  child_first_name: z.string().min(2, "Vorname muss mindestens 2 Zeichen haben"),
-  child_last_name: z.string().min(2, "Nachname muss mindestens 2 Zeichen haben"),
-  child_age: z.number().min(6, "Mindestalter 6 Jahre").max(15, "Maximalalter 15 Jahre"),
+  children: z.array(childSchema).min(1, "Mindestens ein Kind erforderlich"),
   parent_name: z.string().min(2, "Name des Erziehungsberechtigten erforderlich"),
   parent_email: z.string().email("Bitte geben Sie eine gültige E-Mail-Adresse ein"),
+  parent_phone: z.string().min(5, "Telefonnummer des Erziehungsberechtigten erforderlich"),
+  team_name: z.string().optional(),
+  join_existing_team: z.boolean().default(false),
+  existing_team_name: z.string().optional(),
+  existing_team_id: z.string().optional(),
+}).refine((data) => {
+  if (data.children.length > 1 && !data.team_name && !data.join_existing_team) {
+    return false;
+  }
+  if (data.join_existing_team && data.children.length === 1) {
+    return data.existing_team_name && data.existing_team_name.length >= 2 && data.existing_team_id && data.existing_team_id.length >= 1;
+  }
+  return true;
+}, {
+  message: "Bei mehreren Kindern ist ein Teamname erforderlich, oder Team-Beitritt muss konfiguriert werden",
+  path: ["team_name"],
 });
 
 type EinzelanmeldungForm = z.infer<typeof einzelanmeldungSchema>;
@@ -53,37 +93,82 @@ export const CharityRunSignup = () => {
   // Forms
   const einzelanmeldungForm = useForm<EinzelanmeldungForm>({
     resolver: zodResolver(einzelanmeldungSchema),
+    defaultValues: {
+      join_existing_team: false,
+    },
   });
 
   const teamForm = useForm<TeamForm>({
     resolver: zodResolver(teamSchema),
+    defaultValues: {
+      use_leader_email_for_all: false,
+      team_members: [{ first_name: "", last_name: "", email: "", age: 18 }],
+    },
   });
 
   const kinderlaufForm = useForm<KinderlaufForm>({
     resolver: zodResolver(kinderlaufSchema),
+    defaultValues: {
+      children: [{ first_name: "", last_name: "", age: 8 }],
+      join_existing_team: false,
+    },
   });
+
+  // Field arrays for dynamic forms
+  const { fields: teamMemberFields, append: appendTeamMember, remove: removeTeamMember } = useFieldArray({
+    control: teamForm.control,
+    name: "team_members",
+  });
+
+  const { fields: childrenFields, append: appendChild, remove: removeChild } = useFieldArray({
+    control: kinderlaufForm.control,
+    name: "children",
+  });
+
+  // Watch values for conditional rendering
+  const watchJoinTeam = einzelanmeldungForm.watch("join_existing_team");
+  const watchUseLeaderEmail = teamForm.watch("use_leader_email_for_all");
+  const watchLeaderEmail = teamForm.watch("team_leader_email");
+  const watchChildrenCount = kinderlaufForm.watch("children");
+  const watchJoinExistingTeam = kinderlaufForm.watch("join_existing_team");
+
+  // Update team member emails when leader email option is toggled
+  React.useEffect(() => {
+    if (watchUseLeaderEmail && watchLeaderEmail) {
+      teamMemberFields.forEach((_, index) => {
+        teamForm.setValue(`team_members.${index}.email`, watchLeaderEmail);
+      });
+    }
+  }, [watchUseLeaderEmail, watchLeaderEmail, teamForm, teamMemberFields]);
 
   const onSubmitEinzelanmeldung = (data: EinzelanmeldungForm) => {
     console.log("Einzelanmeldung:", data);
     toast({
       title: "Anmeldung erfolgreich!",
-      description: `${data.first_name} ${data.last_name} wurde für ${data.start_time} Uhr angemeldet.`,
+      description: data.join_existing_team 
+        ? `${data.first_name} ${data.last_name} wurde zum Team "${data.team_name}" hinzugefügt.`
+        : `${data.first_name} ${data.last_name} wurde für ${data.start_time} Uhr angemeldet.`,
     });
   };
 
   const onSubmitTeam = (data: TeamForm) => {
     console.log("Teamanmeldung:", data);
+    const totalMembers = data.team_members.length + 1; // +1 for leader
     toast({
       title: "Team erfolgreich angemeldet!",
-      description: `Team "${data.team_name}" mit ${data.team_size} Personen wurde registriert.`,
+      description: `Team "${data.team_name}" mit ${totalMembers} Personen wurde registriert.`,
     });
   };
 
   const onSubmitKinderlauf = (data: KinderlaufForm) => {
     console.log("Kinderlauf:", data);
+    const childCount = data.children.length;
+    const message = childCount === 1 
+      ? `${data.children[0].first_name} ${data.children[0].last_name} wurde für den Kinderlauf angemeldet.`
+      : `${childCount} Kinder wurden für den Kinderlauf angemeldet.`;
     toast({
       title: "Kinderlauf-Anmeldung erfolgreich!",
-      description: `${data.child_first_name} ${data.child_last_name} wurde für den Kinderlauf angemeldet.`,
+      description: message,
     });
   };
 
@@ -196,39 +281,95 @@ export const CharityRunSignup = () => {
                     />
                   </div>
 
+                  {!watchJoinTeam && (
+                    <FormField
+                      control={einzelanmeldungForm.control}
+                      name="start_time"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            Wähle deine Startzeit *
+                          </FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              className="flex flex-col space-y-3"
+                            >
+                              <div className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:bg-accent/50 transition-colors">
+                                <RadioGroupItem value="11:00" id="time1" />
+                                <Label htmlFor="time1" className="text-sm sm:text-base cursor-pointer flex-1">11:00 Uhr - Durchlauf 1</Label>
+                              </div>
+                              <div className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:bg-accent/50 transition-colors">
+                                <RadioGroupItem value="14:30" id="time2" />
+                                <Label htmlFor="time2" className="text-sm sm:text-base cursor-pointer flex-1">14:30 Uhr - Durchlauf 2</Label>
+                              </div>
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
                   <FormField
                     control={einzelanmeldungForm.control}
-                    name="start_time"
+                    name="join_existing_team"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          Wähle deine Startzeit *
-                        </FormLabel>
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                         <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="flex flex-col space-y-3"
-                          >
-                            <div className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:bg-accent/50 transition-colors">
-                              <RadioGroupItem value="11:00" id="time1" />
-                              <Label htmlFor="time1" className="text-sm sm:text-base cursor-pointer flex-1">11:00 Uhr - Durchlauf 1</Label>
-                            </div>
-                            <div className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:bg-accent/50 transition-colors">
-                              <RadioGroupItem value="14:30" id="time2" />
-                              <Label htmlFor="time2" className="text-sm sm:text-base cursor-pointer flex-1">14:30 Uhr - Durchlauf 2</Label>
-                            </div>
-                          </RadioGroup>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
                         </FormControl>
-                        <FormMessage />
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Zu bestehendem Team hinzufügen
+                          </FormLabel>
+                          <p className="text-sm text-muted-foreground">
+                            Ich möchte mich einem bereits existierenden Team anschließen
+                          </p>
+                        </div>
                       </FormItem>
                     )}
                   />
 
+                  {watchJoinTeam && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        control={einzelanmeldungForm.control}
+                        name="team_name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Teamname *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Die Schnellen Läufer" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={einzelanmeldungForm.control}
+                        name="team_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Team-ID *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="T12345" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
                   <Button type="submit" variant="hero" size="lg" className="w-full">
                     <Check className="mr-2 h-4 w-4" />
-                    Einzelanmeldung abschicken
+                    {watchJoinTeam ? "Team beitreten" : "Einzelanmeldung abschicken"}
                   </Button>
                 </form>
               </Form>
@@ -283,24 +424,127 @@ export const CharityRunSignup = () => {
 
                   <FormField
                     control={teamForm.control}
-                    name="team_size"
+                    name="use_leader_email_for_all"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Anzahl Teammitglieder *</FormLabel>
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="5" 
-                            min="2" 
-                            max="10"
-                            {...field} 
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Teamleiter E-Mail für alle verwenden
+                          </FormLabel>
+                          <p className="text-sm text-muted-foreground">
+                            Alle Teammitglieder erhalten die gleiche E-Mail-Adresse
+                          </p>
+                        </div>
                       </FormItem>
                     )}
                   />
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium">Teammitglieder ({teamMemberFields.length + 1} Personen)</h3>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => appendTeamMember({ first_name: "", last_name: "", email: watchUseLeaderEmail ? watchLeaderEmail || "" : "", age: 18 })}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Mitglied hinzufügen
+                      </Button>
+                    </div>
+
+                    {teamMemberFields.map((field, index) => (
+                      <div key={field.id} className="p-4 border rounded-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">Teammitglied {index + 1}</h4>
+                          {teamMemberFields.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeTeamMember(index)}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <FormField
+                            control={teamForm.control}
+                            name={`team_members.${index}.first_name`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Vorname *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Max" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={teamForm.control}
+                            name={`team_members.${index}.last_name`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Nachname *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Mustermann" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <FormField
+                            control={teamForm.control}
+                            name={`team_members.${index}.email`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>E-Mail *</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="email" 
+                                    placeholder="max@example.com" 
+                                    {...field} 
+                                    disabled={watchUseLeaderEmail}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={teamForm.control}
+                            name={`team_members.${index}.age`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Alter *</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    placeholder="25" 
+                                    {...field} 
+                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
                   <FormField
                     control={teamForm.control}
@@ -347,56 +591,6 @@ export const CharityRunSignup = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={kinderlaufForm.control}
-                      name="child_first_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Vorname Kind *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Anna" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={kinderlaufForm.control}
-                      name="child_last_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nachname Kind *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Mustermann" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={kinderlaufForm.control}
-                    name="child_age"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Alter Kind *</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="10" 
-                            min="6" 
-                            max="15"
-                            {...field} 
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField
-                      control={kinderlaufForm.control}
                       name="parent_name"
                       render={({ field }) => (
                         <FormItem>
@@ -423,10 +617,183 @@ export const CharityRunSignup = () => {
                     />
                   </div>
 
+                  <FormField
+                    control={kinderlaufForm.control}
+                    name="parent_phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <Phone className="h-4 w-4" />
+                          Telefonnummer Erziehungsberechtigter *
+                        </FormLabel>
+                        <FormControl>
+                          <Input type="tel" placeholder="+49 123 456789" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium">Kinder ({childrenFields.length})</h3>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => appendChild({ first_name: "", last_name: "", age: 8 })}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Kind hinzufügen
+                      </Button>
+                    </div>
+
+                    {childrenFields.map((field, index) => (
+                      <div key={field.id} className="p-4 border rounded-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">Kind {index + 1}</h4>
+                          {childrenFields.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeChild(index)}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <FormField
+                            control={kinderlaufForm.control}
+                            name={`children.${index}.first_name`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Vorname *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Anna" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={kinderlaufForm.control}
+                            name={`children.${index}.last_name`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Nachname *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Mustermann" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={kinderlaufForm.control}
+                            name={`children.${index}.age`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Alter *</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    placeholder="8" 
+                                    min="1" 
+                                    max="9"
+                                    {...field} 
+                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {watchChildrenCount.length > 1 && (
+                    <FormField
+                      control={kinderlaufForm.control}
+                      name="team_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Teamname (bei mehreren Kindern) *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Die kleinen Läufer" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {watchChildrenCount.length === 1 && (
+                    <>
+                      <FormField
+                        control={kinderlaufForm.control}
+                        name="join_existing_team"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>
+                                Zu bestehendem Team hinzufügen
+                              </FormLabel>
+                              <p className="text-sm text-muted-foreground">
+                                Das Kind soll einem bereits existierenden Team beitreten
+                              </p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      {watchJoinExistingTeam && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <FormField
+                            control={kinderlaufForm.control}
+                            name="existing_team_name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Teamname *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Die Schnellen Läufer" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={kinderlaufForm.control}
+                            name="existing_team_id"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Team-ID *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="T12345" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+
                   <div className="p-3 sm:p-4 bg-accent/10 rounded-lg border border-accent/20">
                     <p className="text-xs sm:text-sm text-muted-foreground">
                       <Baby className="inline h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                      Der Kinderlauf findet um 10:00 Uhr statt und ist für Kinder von 6-15 Jahren geeignet.
+                      Der Kinderlauf findet um 13:30 Uhr statt und ist für Kinder unter 10 Jahren geeignet.
                     </p>
                   </div>
 
