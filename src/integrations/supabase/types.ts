@@ -92,6 +92,7 @@ export type Database = {
           id: string
           last_name: string
           participant_type: string
+          runner_number: number | null
           team_id: string | null
           timeslot_id: string | null
           updated_at: string | null
@@ -107,6 +108,7 @@ export type Database = {
           id?: string
           last_name: string
           participant_type: string
+          runner_number?: number | null
           team_id?: string | null
           timeslot_id?: string | null
           updated_at?: string | null
@@ -122,6 +124,7 @@ export type Database = {
           id?: string
           last_name?: string
           participant_type?: string
+          runner_number?: number | null
           team_id?: string | null
           timeslot_id?: string | null
           updated_at?: string | null
@@ -163,6 +166,7 @@ export type Database = {
           event_id: string
           id: string
           name: string
+          readable_team_id: string | null
           shared_email: boolean | null
           team_email: string | null
           updated_at: string | null
@@ -172,6 +176,7 @@ export type Database = {
           event_id: string
           id?: string
           name: string
+          readable_team_id?: string | null
           shared_email?: boolean | null
           team_email?: string | null
           updated_at?: string | null
@@ -181,6 +186,7 @@ export type Database = {
           event_id?: string
           id?: string
           name?: string
+          readable_team_id?: string | null
           shared_email?: boolean | null
           team_email?: string | null
           updated_at?: string | null
@@ -238,7 +244,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_readable_team_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_next_runner_number: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
