@@ -177,53 +177,101 @@ export const CharityRunSignup = () => {
   }, [watchUseSharedEmail, watchSharedEmail, teamForm, teamMemberFields]);
 
   const onSubmitEinzelanmeldung = async (data: EinzelanmeldungForm) => {
+    console.log('Starting individual registration submission:', { 
+      firstName: data.first_name, 
+      lastName: data.last_name,
+      age: data.age,
+      joinExistingTeam: data.join_existing_team,
+      teamName: data.team_name 
+    });
+
     try {
       // Get the current event (assuming there's one active event)
+      console.log('Fetching active events...');
       const { data: events, error: eventsError } = await supabase
         .from('events')
-        .select('id')
+        .select('id, name, year')
         .eq('registration_open', true)
         .limit(1);
 
-      if (eventsError || !events || events.length === 0) {
-        throw new Error('Keine aktive Veranstaltung gefunden');
+      if (eventsError) {
+        console.error('Database error fetching events:', eventsError);
+        throw new Error(`Fehler beim Laden der Veranstaltung: ${eventsError.message}`);
+      }
+
+      if (!events || events.length === 0) {
+        console.error('No active events found');
+        throw new Error('Keine aktive Veranstaltung gefunden. Bitte kontaktieren Sie den Veranstalter.');
       }
 
       const eventId = events[0].id;
+      console.log('Found active event:', { eventId, name: events[0].name, year: events[0].year });
 
       let teamId = null;
       
       if (data.join_existing_team && data.team_name) {
+        console.log('Looking for existing team:', data.team_name);
         // Find existing team by name
         const { data: teams, error: teamError } = await supabase
           .from('teams')
-          .select('id')
+          .select('id, name')
           .eq('name', data.team_name)
           .eq('event_id', eventId)
           .limit(1);
 
-        if (teamError || !teams || teams.length === 0) {
-          throw new Error('Team nicht gefunden');
+        if (teamError) {
+          console.error('Database error fetching team:', teamError);
+          throw new Error(`Fehler beim Suchen des Teams: ${teamError.message}`);
         }
+
+        if (!teams || teams.length === 0) {
+          console.error('Team not found:', data.team_name);
+          throw new Error(`Team "${data.team_name}" wurde nicht gefunden. Bitte überprüfen Sie den Teamnamen.`);
+        }
+        
         teamId = teams[0].id;
+        console.log('Found team:', { teamId, name: teams[0].name });
       }
+
+      // Prepare participant data
+      const participantData = {
+        event_id: eventId,
+        team_id: teamId,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        age: data.age,
+        gender: data.gender === 'männlich' ? 'male' : data.gender === 'weiblich' ? 'female' : 'other',
+        participant_type: 'adult'
+      };
+
+      console.log('Inserting participant:', { ...participantData, email: '[REDACTED]' });
 
       // Insert participant
       const { error: participantError } = await supabase
         .from('participants')
-        .insert({
-          event_id: eventId,
-          team_id: teamId,
-          first_name: data.first_name,
-          last_name: data.last_name,
-          email: data.email,
-          age: data.age,
-          gender: data.gender === 'männlich' ? 'male' : data.gender === 'weiblich' ? 'female' : 'other',
-          participant_type: 'adult'
-        });
+        .insert(participantData);
 
-      if (participantError) throw participantError;
+      if (participantError) {
+        console.error('Database error inserting participant:', participantError);
+        
+        // Provide more specific error messages based on error codes
+        let errorMessage = `Fehler bei der Registrierung: ${participantError.message}`;
+        
+        if (participantError.code === '23514') {
+          if (participantError.message.includes('email_required_for_adults')) {
+            errorMessage = 'E-Mail-Adresse ist für Erwachsene erforderlich.';
+          } else if (participantError.message.includes('gender_check')) {
+            errorMessage = 'Ungültiges Geschlecht ausgewählt.';
+          }
+        } else if (participantError.code === '23505') {
+          errorMessage = 'Diese E-Mail-Adresse ist bereits registriert.';
+        }
+        
+        throw new Error(errorMessage);
+      }
 
+      console.log('Individual registration successful');
       toast({
         title: "Anmeldung erfolgreich!",
         description: data.join_existing_team 
@@ -233,62 +281,141 @@ export const CharityRunSignup = () => {
       
       einzelanmeldungForm.reset();
     } catch (error) {
-      console.error('Error submitting registration:', error);
+      console.error('Individual registration failed:', error);
+      const errorMessage = error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten";
+      
       toast({
         title: "Fehler bei der Anmeldung",
-        description: error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten",
+        description: errorMessage,
         variant: "destructive",
       });
     }
   };
 
   const onSubmitTeam = async (data: TeamForm) => {
+    console.log('Starting team registration submission:', { 
+      teamName: data.team_name, 
+      memberCount: data.team_members.length,
+      useSharedEmail: data.use_shared_email 
+    });
+
     try {
+      // Validate team data
+      if (data.team_members.length === 0) {
+        throw new Error('Mindestens ein Teammitglied ist erforderlich.');
+      }
+
       // Get the current event
+      console.log('Fetching active events for team registration...');
       const { data: events, error: eventsError } = await supabase
         .from('events')
-        .select('id')
+        .select('id, name, year')
         .eq('registration_open', true)
         .limit(1);
 
-      if (eventsError || !events || events.length === 0) {
-        throw new Error('Keine aktive Veranstaltung gefunden');
+      if (eventsError) {
+        console.error('Database error fetching events for team:', eventsError);
+        throw new Error(`Fehler beim Laden der Veranstaltung: ${eventsError.message}`);
+      }
+
+      if (!events || events.length === 0) {
+        console.error('No active events found for team registration');
+        throw new Error('Keine aktive Veranstaltung gefunden. Bitte kontaktieren Sie den Veranstalter.');
       }
 
       const eventId = events[0].id;
+      console.log('Found active event for team:', { eventId, name: events[0].name });
+
+      // Check if team name already exists
+      console.log('Checking if team name already exists:', data.team_name);
+      const { data: existingTeams, error: checkTeamError } = await supabase
+        .from('teams')
+        .select('id, name')
+        .eq('name', data.team_name)
+        .eq('event_id', eventId);
+
+      if (checkTeamError) {
+        console.error('Error checking existing team names:', checkTeamError);
+        throw new Error(`Fehler beim Überprüfen des Teamnamens: ${checkTeamError.message}`);
+      }
+
+      if (existingTeams && existingTeams.length > 0) {
+        console.error('Team name already exists:', data.team_name);
+        throw new Error(`Teamname "${data.team_name}" ist bereits vergeben. Bitte wählen Sie einen anderen Namen.`);
+      }
 
       // Create team first
-      const { data: teamData, error: teamError } = await supabase
+      const teamData = {
+        event_id: eventId,
+        name: data.team_name,
+        shared_email: data.use_shared_email,
+        team_email: data.shared_email || null
+      };
+
+      console.log('Creating team:', { ...teamData, team_email: '[REDACTED]' });
+      
+      const { data: createdTeam, error: teamError } = await supabase
         .from('teams')
-        .insert({
-          event_id: eventId,
-          name: data.team_name,
-          shared_email: data.use_shared_email,
-          team_email: data.shared_email || null
-        })
-        .select('id')
+        .insert(teamData)
+        .select('id, name')
         .single();
 
-      if (teamError || !teamData) throw teamError;
+      if (teamError) {
+        console.error('Database error creating team:', teamError);
+        throw new Error(`Fehler beim Erstellen des Teams: ${teamError.message}`);
+      }
+
+      if (!createdTeam) {
+        console.error('Team creation returned no data');
+        throw new Error('Team konnte nicht erstellt werden.');
+      }
+
+      console.log('Team created successfully:', { teamId: createdTeam.id, name: createdTeam.name });
 
       // Insert all team members
-      const participants = data.team_members.map(member => ({
-        event_id: eventId,
-        team_id: teamData.id,
-        first_name: member.first_name,
-        last_name: member.last_name,
-        email: member.email,
-        age: member.age,
-        gender: member.gender === 'männlich' ? 'male' : member.gender === 'weiblich' ? 'female' : 'other',
-        participant_type: 'adult'
-      }));
+      const participants = data.team_members.map((member, index) => {
+        console.log(`Preparing team member ${index + 1}:`, { 
+          firstName: member.first_name, 
+          lastName: member.last_name, 
+          age: member.age 
+        });
+        
+        return {
+          event_id: eventId,
+          team_id: createdTeam.id,
+          first_name: member.first_name,
+          last_name: member.last_name,
+          email: member.email,
+          age: member.age,
+          gender: member.gender === 'männlich' ? 'male' : member.gender === 'weiblich' ? 'female' : 'other',
+          participant_type: 'adult'
+        };
+      });
 
+      console.log(`Inserting ${participants.length} team members...`);
       const { error: participantsError } = await supabase
         .from('participants')
         .insert(participants);
 
-      if (participantsError) throw participantsError;
+      if (participantsError) {
+        console.error('Database error inserting team members:', participantsError);
+        
+        // Try to clean up the created team if participant insertion fails
+        console.log('Attempting to clean up created team due to participant insertion failure...');
+        await supabase.from('teams').delete().eq('id', createdTeam.id);
+        
+        let errorMessage = `Fehler beim Registrieren der Teammitglieder: ${participantsError.message}`;
+        
+        if (participantsError.code === '23505') {
+          errorMessage = 'Eine oder mehrere E-Mail-Adressen sind bereits registriert.';
+        } else if (participantsError.code === '23514') {
+          errorMessage = 'Ungültige Daten bei einem Teammitglied. Bitte überprüfen Sie alle Eingaben.';
+        }
+        
+        throw new Error(errorMessage);
+      }
 
+      console.log('Team registration completed successfully');
       toast({
         title: "Team erfolgreich angemeldet!",
         description: `Team "${data.team_name}" mit ${data.team_members.length} Personen wurde registriert.`,
@@ -296,48 +423,114 @@ export const CharityRunSignup = () => {
       
       teamForm.reset();
     } catch (error) {
-      console.error('Error submitting team registration:', error);
+      console.error('Team registration failed:', error);
+      const errorMessage = error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten";
+      
       toast({
         title: "Fehler bei der Team-Anmeldung",
-        description: error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten",
+        description: errorMessage,
         variant: "destructive",
       });
     }
   };
 
   const onSubmitKinderlauf = async (data: KinderlaufForm) => {
+    console.log('Starting children run registration submission:', { 
+      parentName: data.parent_name,
+      childrenCount: data.children.length,
+      joinExistingTeam: data.join_existing_team,
+      teamName: data.team_name 
+    });
+
     try {
+      // Validate children data
+      if (data.children.length === 0) {
+        throw new Error('Mindestens ein Kind ist erforderlich.');
+      }
+
       // Get the current event
+      console.log('Fetching active events for children run...');
       const { data: events, error: eventsError } = await supabase
         .from('events')
-        .select('id')
+        .select('id, name, year')
         .eq('registration_open', true)
         .limit(1);
 
-      if (eventsError || !events || events.length === 0) {
-        throw new Error('Keine aktive Veranstaltung gefunden');
+      if (eventsError) {
+        console.error('Database error fetching events for children run:', eventsError);
+        throw new Error(`Fehler beim Laden der Veranstaltung: ${eventsError.message}`);
+      }
+
+      if (!events || events.length === 0) {
+        console.error('No active events found for children run');
+        throw new Error('Keine aktive Veranstaltung gefunden. Bitte kontaktieren Sie den Veranstalter.');
       }
 
       const eventId = events[0].id;
+      console.log('Found active event for children run:', { eventId, name: events[0].name });
+
+      // Parse parent name (basic splitting)
+      const nameParts = data.parent_name.trim().split(' ');
+      const parentFirstName = nameParts[0] || data.parent_name;
+      const parentLastName = nameParts.slice(1).join(' ') || '';
 
       // Create guardian first
-      const { data: guardianData, error: guardianError } = await supabase
+      const guardianData = {
+        first_name: parentFirstName,
+        last_name: parentLastName,
+        email: data.parent_email,
+        phone: data.parent_phone
+      };
+
+      console.log('Creating guardian:', { ...guardianData, email: '[REDACTED]', phone: '[REDACTED]' });
+
+      const { data: createdGuardian, error: guardianError } = await supabase
         .from('guardians')
-        .insert({
-          first_name: data.parent_name.split(' ')[0] || data.parent_name,
-          last_name: data.parent_name.split(' ').slice(1).join(' ') || '',
-          email: data.parent_email,
-          phone: data.parent_phone
-        })
+        .insert(guardianData)
         .select('id')
         .single();
 
-      if (guardianError || !guardianData) throw guardianError;
+      if (guardianError) {
+        console.error('Database error creating guardian:', guardianError);
+        
+        let errorMessage = `Fehler beim Registrieren der Erziehungsberechtigten: ${guardianError.message}`;
+        if (guardianError.code === '23505') {
+          errorMessage = 'Diese E-Mail-Adresse ist bereits für einen Erziehungsberechtigten registriert.';
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      if (!createdGuardian) {
+        console.error('Guardian creation returned no data');
+        throw new Error('Erziehungsberechtigte/r konnte nicht registriert werden.');
+      }
+
+      console.log('Guardian created successfully:', { guardianId: createdGuardian.id });
 
       let teamId = null;
 
       // Handle team creation or joining
       if (data.children.length > 1 && data.team_name && !data.join_existing_team) {
+        console.log('Creating new team for multiple children:', data.team_name);
+        
+        // Check if team name already exists
+        const { data: existingTeams, error: checkTeamError } = await supabase
+          .from('teams')
+          .select('id, name')
+          .eq('name', data.team_name)
+          .eq('event_id', eventId);
+
+        if (checkTeamError) {
+          console.error('Error checking existing team names for children:', checkTeamError);
+          throw new Error(`Fehler beim Überprüfen des Teamnamens: ${checkTeamError.message}`);
+        }
+
+        if (existingTeams && existingTeams.length > 0) {
+          console.error('Team name already exists for children:', data.team_name);
+          throw new Error(`Teamname "${data.team_name}" ist bereits vergeben. Bitte wählen Sie einen anderen Namen.`);
+        }
+
         // Create new team for multiple children
         const { data: teamData, error: teamError } = await supabase
           .from('teams')
@@ -347,49 +540,100 @@ export const CharityRunSignup = () => {
             shared_email: false,
             team_email: data.parent_email
           })
-          .select('id')
+          .select('id, name')
           .single();
 
-        if (teamError || !teamData) throw teamError;
+        if (teamError) {
+          console.error('Database error creating children team:', teamError);
+          throw new Error(`Fehler beim Erstellen des Teams: ${teamError.message}`);
+        }
+
+        if (!teamData) {
+          console.error('Children team creation returned no data');
+          throw new Error('Team konnte nicht erstellt werden.');
+        }
+
         teamId = teamData.id;
+        console.log('Children team created successfully:', { teamId, name: teamData.name });
       } else if (data.join_existing_team && data.existing_team_name) {
+        console.log('Looking for existing team for children:', data.existing_team_name);
+        
         // Find existing team
         const { data: teams, error: teamError } = await supabase
           .from('teams')
-          .select('id')
+          .select('id, name')
           .eq('name', data.existing_team_name)
           .eq('event_id', eventId)
           .limit(1);
 
-        if (teamError || !teams || teams.length === 0) {
-          throw new Error('Team nicht gefunden');
+        if (teamError) {
+          console.error('Database error fetching existing team for children:', teamError);
+          throw new Error(`Fehler beim Suchen des Teams: ${teamError.message}`);
         }
+
+        if (!teams || teams.length === 0) {
+          console.error('Existing team not found for children:', data.existing_team_name);
+          throw new Error(`Team "${data.existing_team_name}" wurde nicht gefunden. Bitte überprüfen Sie den Teamnamen.`);
+        }
+        
         teamId = teams[0].id;
+        console.log('Found existing team for children:', { teamId, name: teams[0].name });
       }
 
       // Insert all children as participants
-      const participants = data.children.map(child => ({
-        event_id: eventId,
-        team_id: teamId,
-        guardian_id: guardianData.id,
-        first_name: child.first_name,
-        last_name: child.last_name,
-        age: child.age,
-        gender: child.gender === 'männlich' ? 'male' : child.gender === 'weiblich' ? 'female' : 'other',
-        participant_type: 'child'
-      }));
+      const participants = data.children.map((child, index) => {
+        console.log(`Preparing child ${index + 1}:`, { 
+          firstName: child.first_name, 
+          lastName: child.last_name, 
+          age: child.age 
+        });
+        
+        return {
+          event_id: eventId,
+          team_id: teamId,
+          guardian_id: createdGuardian.id,
+          first_name: child.first_name,
+          last_name: child.last_name,
+          age: child.age,
+          gender: child.gender === 'männlich' ? 'male' : child.gender === 'weiblich' ? 'female' : 'other',
+          participant_type: 'child'
+        };
+      });
 
+      console.log(`Inserting ${participants.length} children as participants...`);
       const { error: participantsError } = await supabase
         .from('participants')
         .insert(participants);
 
-      if (participantsError) throw participantsError;
+      if (participantsError) {
+        console.error('Database error inserting children participants:', participantsError);
+        
+        // Try to clean up created guardian and team if participant insertion fails
+        console.log('Attempting to clean up created guardian and team due to participant insertion failure...');
+        await supabase.from('guardians').delete().eq('id', createdGuardian.id);
+        if (teamId) {
+          await supabase.from('teams').delete().eq('id', teamId);
+        }
+        
+        let errorMessage = `Fehler beim Registrieren der Kinder: ${participantsError.message}`;
+        
+        if (participantsError.code === '23514') {
+          if (participantsError.message.includes('email_required_for_adults')) {
+            errorMessage = 'Interne Fehler: Kinder sollten keine E-Mail-Adresse benötigen.';
+          } else {
+            errorMessage = 'Ungültige Daten bei einem Kind. Bitte überprüfen Sie alle Eingaben.';
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
 
       const childCount = data.children.length;
       const message = childCount === 1 
         ? `${data.children[0].first_name} ${data.children[0].last_name} wurde für den Kinderlauf angemeldet.`
         : `${childCount} Kinder wurden für den Kinderlauf angemeldet.`;
       
+      console.log('Children run registration completed successfully');
       toast({
         title: "Kinderlauf-Anmeldung erfolgreich!",
         description: message,
@@ -397,10 +641,12 @@ export const CharityRunSignup = () => {
       
       kinderlaufForm.reset();
     } catch (error) {
-      console.error('Error submitting children registration:', error);
+      console.error('Children run registration failed:', error);
+      const errorMessage = error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten";
+      
       toast({
         title: "Fehler bei der Kinderlauf-Anmeldung",
-        description: error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten",
+        description: errorMessage,
         variant: "destructive",
       });
     }
