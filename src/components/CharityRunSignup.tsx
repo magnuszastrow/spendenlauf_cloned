@@ -373,52 +373,138 @@ export const CharityRunSignup = () => {
       console.log('Team created successfully:', { teamId: createdTeam.id, name: createdTeam.name });
 
       // Insert all team members
-      const participants = data.team_members.map((member, index) => {
-        console.log(`Preparing team member ${index + 1}:`, { 
+      const participants = [];
+      const existingParticipantUpdates = [];
+
+      for (const [index, member] of data.team_members.entries()) {
+        console.log(`Processing team member ${index + 1}:`, { 
           firstName: member.first_name, 
           lastName: member.last_name, 
           age: member.age 
         });
-        
-        return {
-          event_id: eventId,
-          team_id: createdTeam.id,
-          first_name: member.first_name,
-          last_name: member.last_name,
-          email: member.email,
-          age: member.age,
-          gender: member.gender === 'männlich' ? 'male' : member.gender === 'weiblich' ? 'female' : 'other',
-          participant_type: 'adult'
-        };
-      });
 
-      console.log(`Inserting ${participants.length} team members...`);
-      const { error: participantsError } = await supabase
-        .from('participants')
-        .insert(participants);
+        // Check if this participant already exists as an individual registration
+        const { data: existingParticipant, error: checkError } = await supabase
+          .from('participants')
+          .select('id, team_id, first_name, last_name')
+          .eq('email', member.email)
+          .eq('event_id', eventId)
+          .eq('participant_type', 'adult')
+          .maybeSingle();
 
-      if (participantsError) {
-        console.error('Database error inserting team members:', participantsError);
-        
-        // Try to clean up the created team if participant insertion fails
-        console.log('Attempting to clean up created team due to participant insertion failure...');
-        await supabase.from('teams').delete().eq('id', createdTeam.id);
-        
-        let errorMessage = `Fehler beim Registrieren der Teammitglieder: ${participantsError.message}`;
-        
-        if (participantsError.code === '23505') {
-          errorMessage = 'Eine oder mehrere E-Mail-Adressen sind bereits registriert.';
-        } else if (participantsError.code === '23514') {
-          errorMessage = 'Ungültige Daten bei einem Teammitglied. Bitte überprüfen Sie alle Eingaben.';
+        if (checkError) {
+          console.error(`Error checking existing participant for ${member.email}:`, checkError);
+          throw new Error(`Fehler beim Überprüfen bestehender Teilnehmer: ${checkError.message}`);
         }
+
+        if (existingParticipant) {
+          if (existingParticipant.team_id) {
+            console.log(`Participant ${member.email} already belongs to a team`);
+            throw new Error(`${member.first_name} ${member.last_name} (${member.email}) ist bereits einem Team zugeordnet.`);
+          }
+
+          console.log(`Found existing individual participant ${member.email}, will update with team_id`);
+          existingParticipantUpdates.push({
+            id: existingParticipant.id,
+            team_id: createdTeam.id,
+            // Update other fields in case they changed
+            first_name: member.first_name,
+            last_name: member.last_name,
+            age: member.age,
+            gender: member.gender === 'männlich' ? 'male' : member.gender === 'weiblich' ? 'female' : 'other'
+          });
+        } else {
+          console.log(`New team member ${member.email}, will create new participant`);
+          participants.push({
+            event_id: eventId,
+            team_id: createdTeam.id,
+            first_name: member.first_name,
+            last_name: member.last_name,
+            email: member.email,
+            age: member.age,
+            gender: member.gender === 'männlich' ? 'male' : member.gender === 'weiblich' ? 'female' : 'other',
+            participant_type: 'adult'
+          });
+        }
+      }
+
+      // Update existing participants with team_id
+      if (existingParticipantUpdates.length > 0) {
+        console.log(`Updating ${existingParticipantUpdates.length} existing participants with team assignment...`);
         
-        throw new Error(errorMessage);
+        for (const update of existingParticipantUpdates) {
+          const { error: updateError } = await supabase
+            .from('participants')
+            .update({
+              team_id: update.team_id,
+              first_name: update.first_name,
+              last_name: update.last_name,
+              age: update.age,
+              gender: update.gender
+            })
+            .eq('id', update.id);
+
+          if (updateError) {
+            console.error('Error updating existing participant:', updateError);
+            
+            // Try to clean up the created team
+            console.log('Attempting to clean up created team due to participant update failure...');
+            await supabase.from('teams').delete().eq('id', createdTeam.id);
+            
+            throw new Error(`Fehler beim Aktualisieren bestehender Teilnehmer: ${updateError.message}`);
+          }
+        }
+      }
+
+      // Insert new participants
+      if (participants.length > 0) {
+        console.log(`Inserting ${participants.length} new team members...`);
+        const { error: participantsError } = await supabase
+          .from('participants')
+          .insert(participants);
+
+        if (participantsError) {
+          console.error('Database error inserting new team members:', participantsError);
+          
+          // Try to clean up the created team and revert any updates
+          console.log('Attempting to clean up created team and revert updates due to insertion failure...');
+          await supabase.from('teams').delete().eq('id', createdTeam.id);
+          
+          // Revert team_id updates for existing participants
+          if (existingParticipantUpdates.length > 0) {
+            for (const update of existingParticipantUpdates) {
+              await supabase
+                .from('participants')
+                .update({ team_id: null })
+                .eq('id', update.id);
+            }
+          }
+          
+          let errorMessage = `Fehler beim Registrieren neuer Teammitglieder: ${participantsError.message}`;
+          
+          if (participantsError.code === '23505') {
+            errorMessage = 'Eine oder mehrere E-Mail-Adressen sind bereits registriert.';
+          } else if (participantsError.code === '23514') {
+            errorMessage = 'Ungültige Daten bei einem Teammitglied. Bitte überprüfen Sie alle Eingaben.';
+          }
+          
+          throw new Error(errorMessage);
+        }
+      }
+
+      const totalMembers = data.team_members.length;
+      const updatedMembers = existingParticipantUpdates.length;
+      const newMembers = participants.length;
+
+      let description = `Team "${data.team_name}" mit ${totalMembers} Personen wurde registriert.`;
+      if (updatedMembers > 0) {
+        description += ` ${updatedMembers} bereits registrierte Teilnehmer wurden dem Team hinzugefügt.`;
       }
 
       console.log('Team registration completed successfully');
       toast({
         title: "Team erfolgreich angemeldet!",
-        description: `Team "${data.team_name}" mit ${data.team_members.length} Personen wurde registriert.`,
+        description: description,
       });
       
       teamForm.reset();
