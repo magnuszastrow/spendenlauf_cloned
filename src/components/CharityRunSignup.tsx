@@ -601,7 +601,7 @@ export const CharityRunSignup = () => {
                       name="parent_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Name Erziehungsberechtigter *</FormLabel>
+                          <FormLabel>Name Erziehungsberechtigte(r) *</FormLabel>
                           <FormControl>
                             <Input placeholder="Maria Mustermann" {...field} />
                           </FormControl>
@@ -614,7 +614,7 @@ export const CharityRunSignup = () => {
                       name="parent_email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>E-Mail Erziehungsberechtigter *</FormLabel>
+                          <FormLabel>E-Mail Erziehungsberechtigte(r) *</FormLabel>
                           <FormControl>
                             <Input type="email" placeholder="maria@example.com" {...field} />
                           </FormControl>
@@ -631,7 +631,7 @@ export const CharityRunSignup = () => {
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
                           <Phone className="h-4 w-4" />
-                          Telefonnummer Erziehungsberechtigter *
+                          Telefonnummer Erziehungsberechtigte(r) *
                         </FormLabel>
                         <FormControl>
                           <Input type="tel" placeholder="+49 123 456789" {...field} />
