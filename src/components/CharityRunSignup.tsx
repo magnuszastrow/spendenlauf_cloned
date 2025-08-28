@@ -815,7 +815,7 @@ export const CharityRunSignup = () => {
                   <div className="p-3 sm:p-4 bg-accent/10 rounded-lg border border-accent/20">
                     <p className="text-xs sm:text-sm text-muted-foreground">
                       <Baby className="inline h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                      Der Kinderlauf findet um 13:30 Uhr statt und ist für Kinder unter 10 Jahren geeignet.
+                      Der Kinderlauf findet um 13:30 Uhr statt und ist für Kinder bis 10 Jahren geeignet.
                     </p>
                   </div>
 
