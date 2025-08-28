@@ -9,6 +9,7 @@ import Info from "./pages/Info";
 import Sponsoren from "./pages/Sponsoren";
 import FAQs from "./pages/FAQs";
 import Kontakt from "./pages/Kontakt";
+import Impressum from "./pages/Impressum";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -29,6 +30,8 @@ const App = () => (
             <Route path="/info" element={<Info />} />
             <Route path="/sponsoren" element={<Sponsoren />} />
             <Route path="/faqs" element={<FAQs />} />
+            <Route path="/kontakt" element={<Kontakt />} />
+            <Route path="/impressum" element={<Impressum />} />
             <Route path="/anmeldung" element={<Anmeldung />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
