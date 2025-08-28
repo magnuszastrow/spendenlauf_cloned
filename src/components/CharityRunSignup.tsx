@@ -112,15 +112,26 @@ export const CharityRunSignup = () => {
   const einzelanmeldungForm = useForm<EinzelanmeldungForm>({
     resolver: zodResolver(einzelanmeldungSchema),
     defaultValues: {
+      first_name: "",
+      last_name: "",
+      email: "",
+      age: 18,
+      gender: "männlich",
+      start_time: "11:00",
       join_existing_team: false,
+      team_name: "",
+      team_id: "",
     },
   });
 
   const teamForm = useForm<TeamForm>({
     resolver: zodResolver(teamSchema),
     defaultValues: {
+      team_name: "",
+      shared_email: "",
       use_shared_email: false,
       team_members: [{ first_name: "", last_name: "", email: "", age: 18, gender: "männlich" }],
+      start_time: "11:00",
     },
   });
 
@@ -128,7 +139,13 @@ export const CharityRunSignup = () => {
     resolver: zodResolver(kinderlaufSchema),
     defaultValues: {
       children: [{ first_name: "", last_name: "", age: 8, gender: "männlich" }],
+      parent_name: "",
+      parent_email: "",
+      parent_phone: "",
+      team_name: "",
       join_existing_team: false,
+      existing_team_name: "",
+      existing_team_id: "",
     },
   });
 
@@ -202,7 +219,7 @@ export const CharityRunSignup = () => {
           email: data.email,
           age: data.age,
           gender: data.gender,
-          participant_type: 'individual'
+          participant_type: 'adult'
         });
 
       if (participantError) throw participantError;
@@ -263,7 +280,7 @@ export const CharityRunSignup = () => {
         email: member.email,
         age: member.age,
         gender: member.gender,
-        participant_type: 'team'
+        participant_type: 'adult'
       }));
 
       const { error: participantsError } = await supabase
