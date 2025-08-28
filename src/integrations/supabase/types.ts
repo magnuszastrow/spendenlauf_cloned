@@ -265,6 +265,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_current_user_as_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       generate_readable_team_id: {
         Args: Record<PropertyKey, never>
         Returns: string
