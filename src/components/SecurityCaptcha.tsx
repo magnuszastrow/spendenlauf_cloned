@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { SecureInput } from '@/components/SecureInput';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { generateMathCaptcha, validateCaptcha } from '@/lib/security';
@@ -40,7 +40,7 @@ export const SecurityCaptcha = ({ onValidation, error }: SecurityCaptchaProps) =
         Sicherheitsprüfung: Was ist {captcha.question}?
       </Label>
       <div className="flex gap-2">
-        <Input
+        <SecureInput
           id="captcha"
           type="number"
           value={userAnswer}

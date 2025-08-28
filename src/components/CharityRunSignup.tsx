@@ -4,7 +4,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SecureInput } from "@/components/SecureInput";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +15,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { Users, User, Baby, Clock, Check, Plus, Minus, Phone, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { SecurityCaptcha } from "@/components/SecurityCaptcha";
+import { checkRateLimit, validateEmail, validateName, validatePhone } from "@/lib/security";
 
 // Validation schemas
 const einzelanmeldungSchema = z.object({
@@ -106,6 +108,11 @@ type KinderlaufForm = z.infer<typeof kinderlaufSchema>;
 export const CharityRunSignup = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("einzelanmeldung");
+  
+  // Captcha state for each form
+  const [einzelCaptchaSolved, setEinzelCaptchaSolved] = useState(false);
+  const [teamCaptchaSolved, setTeamCaptchaSolved] = useState(false);
+  const [kinderCaptchaSolved, setKinderCaptchaSolved] = useState(false);
 
   // Forms
   const einzelanmeldungForm = useForm<EinzelanmeldungForm>({
@@ -181,6 +188,44 @@ export const CharityRunSignup = () => {
       joinExistingTeam: data.join_existing_team,
       teamName: data.team_name 
     });
+
+    // Security checks
+    if (!einzelCaptchaSolved) {
+      toast({
+        title: "Sicherheitsüberprüfung erforderlich",
+        description: "Bitte lösen Sie das Captcha.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!checkRateLimit("einzelanmeldung")) {
+      toast({
+        title: "Zu viele Versuche",
+        description: "Bitte warten Sie einen Moment bevor Sie es erneut versuchen.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate inputs
+    if (!validateName(data.first_name) || !validateName(data.last_name)) {
+      toast({
+        title: "Ungültige Eingabe",
+        description: "Namen dürfen nur Buchstaben, Bindestriche und Leerzeichen enthalten.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateEmail(data.email)) {
+      toast({
+        title: "Ungültige E-Mail",
+        description: "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       // Get the current event (assuming there's one active event)
@@ -294,6 +339,7 @@ export const CharityRunSignup = () => {
       });
       
       einzelanmeldungForm.reset();
+      setEinzelCaptchaSolved(false);
     } catch (error) {
       console.error('Individual registration failed:', error);
       const errorMessage = error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten";
@@ -312,6 +358,64 @@ export const CharityRunSignup = () => {
       memberCount: data.team_members.length,
       useSharedEmail: data.use_shared_email 
     });
+
+    // Security checks
+    if (!teamCaptchaSolved) {
+      toast({
+        title: "Sicherheitsüberprüfung erforderlich",
+        description: "Bitte lösen Sie das Captcha.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!checkRateLimit("team")) {
+      toast({
+        title: "Zu viele Versuche",
+        description: "Bitte warten Sie einen Moment bevor Sie es erneut versuchen.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate team name
+    if (!validateName(data.team_name)) {
+      toast({
+        title: "Ungültiger Teamname",
+        description: "Teamname darf nur Buchstaben, Zahlen, Bindestriche und Leerzeichen enthalten.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate all team member data
+    for (const member of data.team_members) {
+      if (!validateName(member.first_name) || !validateName(member.last_name)) {
+        toast({
+          title: "Ungültige Teammitglied-Daten",
+          description: "Namen dürfen nur Buchstaben, Bindestriche und Leerzeichen enthalten.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!validateEmail(member.email)) {
+        toast({
+          title: "Ungültige E-Mail",
+          description: `Ungültige E-Mail-Adresse für ${member.first_name} ${member.last_name}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    if (data.use_shared_email && data.shared_email && !validateEmail(data.shared_email)) {
+      toast({
+        title: "Ungültige Team-E-Mail",
+        description: "Bitte geben Sie eine gültige Team-E-Mail-Adresse ein.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       // Validate team data
@@ -839,10 +943,10 @@ export const CharityRunSignup = () => {
                       name="first_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Vorname *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Max" {...field} />
-                          </FormControl>
+                           <FormLabel>Vorname *</FormLabel>
+                           <FormControl>
+                             <SecureInput placeholder="Max" {...field} />
+                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -852,10 +956,10 @@ export const CharityRunSignup = () => {
                       name="last_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Nachname *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Muster" {...field} />
-                          </FormControl>
+                           <FormLabel>Nachname *</FormLabel>
+                           <FormControl>
+                             <SecureInput placeholder="Muster" {...field} />
+                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -867,10 +971,10 @@ export const CharityRunSignup = () => {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>E-Mail *</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="max@example.com" {...field} />
-                        </FormControl>
+                         <FormLabel>E-Mail *</FormLabel>
+                         <FormControl>
+                           <SecureInput type="email" placeholder="max@example.com" {...field} />
+                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -882,15 +986,15 @@ export const CharityRunSignup = () => {
                       name="age"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Alter *</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="25" 
-                              {...field} 
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
-                          </FormControl>
+                           <FormLabel>Alter *</FormLabel>
+                           <FormControl>
+                             <SecureInput 
+                               type="number" 
+                               placeholder="25" 
+                               {...field} 
+                               onChange={(e) => field.onChange(Number(e.target.value))}
+                             />
+                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -998,20 +1102,24 @@ export const CharityRunSignup = () => {
                                 <p className="text-sm">Die Team-ID erhalten Sie bei der Team-Erstellung</p>
                               </TooltipContent>
                             </Tooltip>
-                          </FormLabel>
-                          <FormControl>
-                            <Input placeholder="TEAM-0001" {...field} />
-                          </FormControl>
+                           </FormLabel>
+                           <FormControl>
+                             <SecureInput placeholder="TEAM-0001" {...field} />
+                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  )}
+                   )}
 
-                  <Button type="submit" variant="hero" size="lg" className="w-full">
-                    <Check className="mr-2 h-4 w-4" />
-                    {watchJoinTeam ? "Team beitreten" : "Einzelanmeldung abschicken"}
-                  </Button>
+                   <SecurityCaptcha 
+                     onValidation={setEinzelCaptchaSolved} 
+                   />
+
+                   <Button type="submit" variant="hero" size="lg" className="w-full" disabled={!einzelCaptchaSolved}>
+                     <Check className="mr-2 h-4 w-4" />
+                     {watchJoinTeam ? "Team beitreten" : "Einzelanmeldung abschicken"}
+                   </Button>
                 </form>
               </Form>
             </TabsContent>
@@ -1026,10 +1134,10 @@ export const CharityRunSignup = () => {
                       name="team_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Teamname *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Die Schnellen Läufer" {...field} />
-                          </FormControl>
+                           <FormLabel>Teamname *</FormLabel>
+                           <FormControl>
+                             <SecureInput placeholder="Die Schnellen Läufer" {...field} />
+                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1039,10 +1147,10 @@ export const CharityRunSignup = () => {
                       name="shared_email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>E-Mail für alle (optional)</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="team@example.com" {...field} />
-                          </FormControl>
+                           <FormLabel>E-Mail für alle (optional)</FormLabel>
+                           <FormControl>
+                             <SecureInput type="email" placeholder="team@example.com" {...field} />
+                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1099,10 +1207,10 @@ export const CharityRunSignup = () => {
                             name={`team_members.${index}.first_name`}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Vorname *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Max" {...field} />
-                                </FormControl>
+                                 <FormLabel>Vorname *</FormLabel>
+                                 <FormControl>
+                                   <SecureInput placeholder="Max" {...field} />
+                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -1112,10 +1220,10 @@ export const CharityRunSignup = () => {
                             name={`team_members.${index}.last_name`}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Nachname *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Muster" {...field} />
-                                </FormControl>
+                                 <FormLabel>Nachname *</FormLabel>
+                                 <FormControl>
+                                   <SecureInput placeholder="Muster" {...field} />
+                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -1128,15 +1236,15 @@ export const CharityRunSignup = () => {
                              name={`team_members.${index}.email`}
                              render={({ field }) => (
                                <FormItem>
-                                 <FormLabel>E-Mail *</FormLabel>
-                                 <FormControl>
-                                   <Input 
-                                     type="email" 
-                                     placeholder="max@example.com" 
-                                     {...field} 
-                                     disabled={watchUseSharedEmail}
-                                   />
-                                 </FormControl>
+                                  <FormLabel>E-Mail *</FormLabel>
+                                  <FormControl>
+                                    <SecureInput 
+                                      type="email" 
+                                      placeholder="max@example.com" 
+                                      {...field} 
+                                      disabled={watchUseSharedEmail}
+                                    />
+                                  </FormControl>
                                  <FormMessage />
                                </FormItem>
                              )}
@@ -1146,15 +1254,15 @@ export const CharityRunSignup = () => {
                              name={`team_members.${index}.age`}
                              render={({ field }) => (
                                <FormItem>
-                                 <FormLabel>Alter *</FormLabel>
-                                 <FormControl>
-                                   <Input 
-                                     type="number" 
-                                     placeholder="25" 
-                                     {...field} 
-                                     onChange={(e) => field.onChange(Number(e.target.value))}
-                                   />
-                                 </FormControl>
+                                  <FormLabel>Alter *</FormLabel>
+                                  <FormControl>
+                                    <SecureInput 
+                                      type="number" 
+                                      placeholder="25" 
+                                      {...field} 
+                                      onChange={(e) => field.onChange(Number(e.target.value))}
+                                    />
+                                  </FormControl>
                                  <FormMessage />
                                </FormItem>
                              )}
@@ -1234,9 +1342,13 @@ export const CharityRunSignup = () => {
                         <FormMessage />
                       </FormItem>
                     )}
-                  />
+                   />
 
-                  <Button type="submit" variant="hero" size="lg" className="w-full">
+                   <SecurityCaptcha 
+                     onValidation={setTeamCaptchaSolved} 
+                   />
+
+                   <Button type="submit" variant="hero" size="lg" className="w-full" disabled={!teamCaptchaSolved}>
                     <Users className="mr-2 h-4 w-4" />
                     Team anmelden
                   </Button>
@@ -1254,10 +1366,10 @@ export const CharityRunSignup = () => {
                       name="parent_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Name Erziehungsberechtigter *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Maria Muster" {...field} />
-                          </FormControl>
+                           <FormLabel>Name Erziehungsberechtigter *</FormLabel>
+                           <FormControl>
+                             <SecureInput placeholder="Maria Muster" {...field} />
+                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1267,10 +1379,10 @@ export const CharityRunSignup = () => {
                       name="parent_email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>E-Mail Erziehungsberechtigter *</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="maria@example.com" {...field} />
-                          </FormControl>
+                           <FormLabel>E-Mail Erziehungsberechtigter *</FormLabel>
+                           <FormControl>
+                             <SecureInput type="email" placeholder="maria@example.com" {...field} />
+                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1286,9 +1398,9 @@ export const CharityRunSignup = () => {
                           <Phone className="h-4 w-4" />
                           Telefonnummer Erziehungsberechtigter *
                         </FormLabel>
-                        <FormControl>
-                          <Input type="tel" placeholder="+49 123 456789" {...field} />
-                        </FormControl>
+                         <FormControl>
+                           <SecureInput type="tel" placeholder="+49 123 456789" {...field} />
+                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1323,7 +1435,7 @@ export const CharityRunSignup = () => {
                                <FormItem>
                                  <FormLabel>Vorname *</FormLabel>
                                  <FormControl>
-                                   <Input placeholder="Anna" {...field} />
+                                   <SecureInput placeholder="Anna" {...field} />
                                  </FormControl>
                                  <FormMessage />
                                </FormItem>
@@ -1334,10 +1446,10 @@ export const CharityRunSignup = () => {
                              name={`children.${index}.last_name`}
                              render={({ field }) => (
                                <FormItem>
-                                 <FormLabel>Nachname *</FormLabel>
-                                 <FormControl>
-                                   <Input placeholder="Muster" {...field} />
-                                 </FormControl>
+                                  <FormLabel>Nachname *</FormLabel>
+                                  <FormControl>
+                                    <SecureInput placeholder="Muster" {...field} />
+                                  </FormControl>
                                  <FormMessage />
                                </FormItem>
                              )}
@@ -1347,17 +1459,17 @@ export const CharityRunSignup = () => {
                              name={`children.${index}.age`}
                              render={({ field }) => (
                                <FormItem>
-                                 <FormLabel>Alter *</FormLabel>
-                                 <FormControl>
-                                   <Input 
-                                     type="number" 
-                                     placeholder="8" 
-                                     min="1" 
-                                     max="9"
-                                     {...field} 
-                                     onChange={(e) => field.onChange(Number(e.target.value))}
-                                   />
-                                 </FormControl>
+                                  <FormLabel>Alter *</FormLabel>
+                                  <FormControl>
+                                    <SecureInput 
+                                      type="number" 
+                                      placeholder="8" 
+                                      min="1" 
+                                      max="9"
+                                      {...field} 
+                                      onChange={(e) => field.onChange(Number(e.target.value))}
+                                    />
+                                  </FormControl>
                                  <FormMessage />
                                </FormItem>
                              )}
@@ -1415,10 +1527,10 @@ export const CharityRunSignup = () => {
                       name="team_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Teamname (bei mehreren Kindern) *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Die kleinen Läufer" {...field} />
-                          </FormControl>
+                           <FormLabel>Teamname (bei mehreren Kindern) *</FormLabel>
+                           <FormControl>
+                             <SecureInput placeholder="Die kleinen Läufer" {...field} />
+                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1470,9 +1582,9 @@ export const CharityRunSignup = () => {
                                   </TooltipContent>
                                 </Tooltip>
                               </FormLabel>
-                              <FormControl>
-                                <Input placeholder="TEAM-0001" {...field} />
-                              </FormControl>
+                               <FormControl>
+                                 <SecureInput placeholder="TEAM-0001" {...field} />
+                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -1487,9 +1599,13 @@ export const CharityRunSignup = () => {
                       <Baby className="inline h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                       Der Kinderlauf findet um 13:30 Uhr statt und ist für Kinder bis 10 Jahren geeignet.
                     </p>
-                  </div>
+                   </div>
 
-                  <Button type="submit" variant="sport" size="lg" className="w-full">
+                   <SecurityCaptcha 
+                     onValidation={setKinderCaptchaSolved} 
+                   />
+
+                   <Button type="submit" variant="sport" size="lg" className="w-full" disabled={!kinderCaptchaSolved}>
                     <Baby className="mr-2 h-4 w-4" />
                     Zum Kinderlauf anmelden
                   </Button>
