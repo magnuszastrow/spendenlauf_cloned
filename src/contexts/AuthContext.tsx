@@ -10,7 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  checkUserRole: () => Promise<void>;
+  checkUserRole: (userId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,19 +33,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkUserRole = async () => {
-    if (!user) {
-      setIsAdmin(false);
-      return;
-    }
-
+  const checkUserRole = async (userId: string) => {
     try {
-      console.log('Checking user role for user ID:', user.id);
+      console.log('Checking user role for user ID:', userId);
       
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('role', 'admin')
         .maybeSingle();
 
@@ -75,9 +70,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         // Check user role after auth state changes
         if (session?.user) {
-          setTimeout(() => {
-            checkUserRole();
-          }, 0);
+          checkUserRole(session.user.id);
         } else {
           setIsAdmin(false);
         }
@@ -91,9 +84,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setLoading(false);
       
       if (session?.user) {
-        setTimeout(() => {
-          checkUserRole();
-        }, 0);
+        checkUserRole(session.user.id);
       }
     });
 
