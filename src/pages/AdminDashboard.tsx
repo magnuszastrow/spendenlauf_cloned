@@ -67,12 +67,15 @@ const AdminDashboard = () => {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
+      console.log('Loading dashboard data...');
+      
       // Load participants
       const { data: participants, error: participantsError } = await supabase
         .from('participants')
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('Participants loaded:', participants, participantsError);
       if (participantsError) throw participantsError;
 
       // Load events
@@ -80,16 +83,15 @@ const AdminDashboard = () => {
         .from('events')
         .select('*');
 
+      console.log('Events loaded:', events, eventsError);
       if (eventsError) throw eventsError;
 
       // Load timeslots with participant counts
       const { data: timeslots, error: timeslotsError } = await supabase
         .from('timeslots')
-        .select(`
-          *,
-          participants(count)
-        `);
+        .select('*');
 
+      console.log('Timeslots loaded:', timeslots, timeslotsError);
       if (timeslotsError) throw timeslotsError;
 
       // Process data
@@ -97,6 +99,8 @@ const AdminDashboard = () => {
         acc[p.participant_type] = (acc[p.participant_type] || 0) + 1;
         return acc;
       }, {}) || {};
+
+      console.log('Participants by type:', participantsByType);
 
       // Calculate timeslot fill rates
       const timeslotFillRates = await Promise.all(
@@ -120,6 +124,8 @@ const AdminDashboard = () => {
         }) || []
       );
 
+      console.log('Timeslot fill rates:', timeslotFillRates);
+
       setStats({
         totalParticipants: participants?.length || 0,
         totalEvents: events?.length || 0,
@@ -128,6 +134,8 @@ const AdminDashboard = () => {
         timeslotFillRates,
         recentParticipants: participants?.slice(0, 5) || []
       });
+      
+      console.log('Dashboard stats set successfully');
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {

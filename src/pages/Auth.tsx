@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -16,11 +16,12 @@ const Auth = () => {
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already authenticated
-  if (user) {
-    navigate('/');
-    return null;
-  }
+  // Redirect if already authenticated - use useEffect to avoid render-time navigation
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +38,7 @@ const Auth = () => {
         }
       } else {
         toast.success('Erfolgreich angemeldet!');
-        navigate('/');
+        // Navigation will be handled by the useEffect above when user state updates
       }
     } catch (error) {
       toast.error('Ein unerwarteter Fehler ist aufgetreten.');
