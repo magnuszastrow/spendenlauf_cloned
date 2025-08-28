@@ -10,7 +10,6 @@ const Navbar = () => {
 
   const navigationItems = [
     { href: "/info", label: "Info" },
-    { href: "/anmeldung", label: "Anmeldung" },
     { href: "/sponsoren", label: "Sponsoren" },
     { href: "/kontakt", label: "Kontakt" },
     { href: "/faqs", label: "FAQs" },
@@ -49,7 +48,7 @@ const Navbar = () => {
               {user ? (
                 <>
                   {isAdmin && (
-                    <Link to="/admin">
+                    <Link to="/admin/dashboard">
                       <Button variant="outline" size="sm">
                         <Shield className="h-4 w-4 mr-2" />
                         Admin

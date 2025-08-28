@@ -27,14 +27,26 @@ const Index = () => {
           {user && isAdmin && (
             <Card className="max-w-md mx-auto">
               <CardHeader>
-                <CardTitle>Administrator</CardTitle>
+                <CardTitle>Admin Dashboard</CardTitle>
                 <CardDescription>
-                  Sie sind als Administrator angemeldet
+                  Verwalten Sie alle Spendenlauf-Daten
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
+                <Link to="/admin/dashboard">
+                  <Button className="w-full" variant="default">
+                    📊 Dashboard
+                  </Button>
+                </Link>
+                <Link to="/admin/data">
+                  <Button className="w-full" variant="outline">
+                    🗂️ Datenverwaltung
+                  </Button>
+                </Link>
                 <Link to="/admin">
-                  <Button className="w-full">Zum Admin Dashboard</Button>
+                  <Button className="w-full" variant="outline">
+                    📋 Export (Alt)
+                  </Button>
                 </Link>
               </CardContent>
             </Card>
