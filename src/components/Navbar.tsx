@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
   const navigationItems = [
@@ -18,8 +16,8 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Desktop Navbar */}
-      <nav className="sticky top-0 z-50 hidden lg:flex bg-highlight px-4 py-2">
+      {/* Desktop/Tablet Fixed Header */}
+      <nav className="fixed top-0 left-0 right-0 z-50 hidden md:flex bg-highlight px-4 py-2 shadow-sm">
         <div className="container mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
@@ -52,8 +50,8 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile Navbar */}
-      <nav className="sticky top-0 z-50 lg:hidden bg-highlight px-4 py-2">
+      {/* Mobile Header with Sidebar Trigger */}
+      <nav className="fixed top-0 left-0 right-0 z-50 md:hidden bg-highlight px-4 py-2 shadow-sm">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
@@ -61,53 +59,8 @@ const Navbar = () => {
             </div>
           </Link>
 
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="text-black p-2"
-            aria-label="Toggle navigation"
-          >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          <SidebarTrigger className="text-black" />
         </div>
-
-        {/* Mobile Menu Overlay */}
-        {isMenuOpen && (
-          <div className="fixed inset-0 bg-highlight z-40 lg:hidden">
-            <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between p-4">
-                <Link to="/" onClick={() => setIsMenuOpen(false)}>
-                  <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                    <span className="text-xs">Logo</span>
-                  </div>
-                </Link>
-                <button
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-black p-2"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              
-              <div className="flex flex-col items-center justify-start pt-8">
-                <ul className="text-center space-y-6">
-                  {navigationItems.map((item) => (
-                    <li key={item.href}>
-                      <Link
-                        to={item.href}
-                        className={`text-black text-xl hover:text-gray-700 transition-colors ${
-                          isActive(item.href) ? "font-semibold" : ""
-                        }`}
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
       </nav>
     </>
   );
