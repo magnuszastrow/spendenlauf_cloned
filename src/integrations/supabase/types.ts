@@ -288,6 +288,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      lookup_team_by_id_or_name: {
+        Args: { team_identifier: string }
+        Returns: {
+          event_id: string
+          id: string
+          name: string
+          readable_team_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "viewer"
