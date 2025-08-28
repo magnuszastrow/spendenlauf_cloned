@@ -14,7 +14,177 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      events: {
+        Row: {
+          created_at: string | null
+          date: string | null
+          description: string | null
+          id: string
+          name: string
+          registration_open: boolean | null
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          registration_open?: boolean | null
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          registration_open?: boolean | null
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
+      guardians: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      participants: {
+        Row: {
+          age: number
+          created_at: string | null
+          email: string | null
+          event_id: string
+          first_name: string
+          gender: string | null
+          guardian_id: string | null
+          id: string
+          last_name: string
+          participant_type: string
+          team_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          age: number
+          created_at?: string | null
+          email?: string | null
+          event_id: string
+          first_name: string
+          gender?: string | null
+          guardian_id?: string | null
+          id?: string
+          last_name: string
+          participant_type: string
+          team_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          age?: number
+          created_at?: string | null
+          email?: string | null
+          event_id?: string
+          first_name?: string
+          gender?: string | null
+          guardian_id?: string | null
+          id?: string
+          last_name?: string
+          participant_type?: string
+          team_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participants_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participants_guardian_id_fkey"
+            columns: ["guardian_id"]
+            isOneToOne: false
+            referencedRelation: "guardians"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participants_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string | null
+          event_id: string
+          id: string
+          name: string
+          shared_email: boolean | null
+          team_email: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_id: string
+          id?: string
+          name: string
+          shared_email?: boolean | null
+          team_email?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string
+          id?: string
+          name?: string
+          shared_email?: boolean | null
+          team_email?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
