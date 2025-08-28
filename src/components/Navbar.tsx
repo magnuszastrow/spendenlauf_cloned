@@ -1,8 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { LogOut, User, Shield } from "lucide-react";
 
 const Navbar = () => {
   const location = useLocation();
+  const { user, isAdmin, signOut } = useAuth();
 
   const navigationItems = [
     { href: "/info", label: "Info" },
@@ -41,10 +45,34 @@ const Navbar = () => {
               ))}
             </ul>
             
-            <div className="ml-4">
-              <div className="w-10 h-8 bg-gray-300 flex items-center justify-center">
-                <span className="text-xs">Badge</span>
-              </div>
+            <div className="ml-4 flex items-center space-x-2">
+              {user ? (
+                <>
+                  {isAdmin && (
+                    <Link to="/admin">
+                      <Button variant="outline" size="sm">
+                        <Shield className="h-4 w-4 mr-2" />
+                        Admin
+                      </Button>
+                    </Link>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => signOut()}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Abmelden
+                  </Button>
+                </>
+              ) : (
+                <Link to="/auth">
+                  <Button variant="outline" size="sm">
+                    <User className="h-4 w-4 mr-2" />
+                    Anmelden
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>

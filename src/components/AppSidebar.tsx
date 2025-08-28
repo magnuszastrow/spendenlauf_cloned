@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Info, UserPlus, Users, HelpCircle, Phone } from "lucide-react";
+import { Home, Info, UserPlus, Users, HelpCircle, Phone, User, Shield, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -23,6 +24,7 @@ const navigationItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const { user, isAdmin, signOut } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -52,6 +54,43 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        <SidebarGroup>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {user ? (
+                <>
+                  {isAdmin && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isActive('/admin')}>
+                        <Link to="/admin">
+                          <Shield className="h-4 w-4" />
+                          <span>Admin</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => signOut()}>
+                      <LogOut className="h-4 w-4" />
+                      <span>Abmelden</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
+              ) : (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/auth')}>
+                    <Link to="/auth">
+                      <User className="h-4 w-4" />
+                      <span>Anmelden</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
