@@ -33,12 +33,12 @@ const einzelanmeldungSchema = z.object({
   team_id: z.string().optional(),
 }).refine((data) => {
   if (data.join_existing_team) {
-    return data.team_name && data.team_name.length >= 2 && data.team_id && data.team_id.length >= 1;
+    return data.team_id && data.team_id.length >= 1;
   }
   return true;
 }, {
-  message: "Teamname und Team-ID sind erforderlich",
-  path: ["team_name"],
+  message: "Team-ID ist erforderlich um einem bestehenden Team beizutreten",
+  path: ["team_id"],
 });
 
 const teamMemberSchema = z.object({
@@ -85,14 +85,13 @@ const kinderlaufSchema = z.object({
   parent_phone: z.string().min(5, "Telefonnummer des Erziehungsberechtigten erforderlich"),
   team_name: z.string().optional(),
   join_existing_team: z.boolean().default(false),
-  existing_team_name: z.string().optional(),
   existing_team_id: z.string().optional(),
 }).refine((data) => {
   if (data.children.length > 1 && !data.team_name && !data.join_existing_team) {
     return false;
   }
   if (data.join_existing_team) {
-    return data.existing_team_name && data.existing_team_name.length >= 2 && data.existing_team_id && data.existing_team_id.length >= 1;
+    return data.existing_team_id && data.existing_team_id.length >= 1;
   }
   return true;
 }, {
@@ -119,7 +118,6 @@ export const CharityRunSignup = () => {
       gender: "männlich",
       start_time: "11:00",
       join_existing_team: false,
-      team_name: "",
       team_id: "",
     },
   });
@@ -144,7 +142,6 @@ export const CharityRunSignup = () => {
       parent_phone: "",
       team_name: "",
       join_existing_team: false,
-      existing_team_name: "",
       existing_team_id: "",
     },
   });
@@ -209,28 +206,28 @@ export const CharityRunSignup = () => {
 
       let teamId = null;
       
-      if (data.join_existing_team && data.team_name) {
-        console.log('Looking for existing team:', data.team_name);
-        // Find existing team by name
+      if (data.join_existing_team && data.team_id) {
+        console.log('Looking for existing team by ID:', data.team_id);
+        // Find existing team by readable team ID
         const { data: teams, error: teamError } = await supabase
           .from('teams')
-          .select('id, name')
-          .eq('name', data.team_name)
+          .select('id, name, readable_team_id')
+          .eq('readable_team_id', data.team_id)
           .eq('event_id', eventId)
           .limit(1);
 
         if (teamError) {
-          console.error('Database error fetching team:', teamError);
+          console.error('Database error fetching team by ID:', teamError);
           throw new Error(`Fehler beim Suchen des Teams: ${teamError.message}`);
         }
 
         if (!teams || teams.length === 0) {
-          console.error('Team not found:', data.team_name);
-          throw new Error(`Team "${data.team_name}" wurde nicht gefunden. Bitte überprüfen Sie den Teamnamen.`);
+          console.error('Team not found by ID:', data.team_id);
+          throw new Error(`Team mit ID "${data.team_id}" wurde nicht gefunden. Bitte überprüfen Sie die Team-ID.`);
         }
         
         teamId = teams[0].id;
-        console.log('Found team:', { teamId, name: teams[0].name });
+        console.log('Found team by ID:', { teamId, name: teams[0].name, readableId: teams[0].readable_team_id });
       }
 
       // Prepare participant data
@@ -272,11 +269,28 @@ export const CharityRunSignup = () => {
       }
 
       console.log('Individual registration successful');
+      
+      // Get team details for success message if joined a team
+      let successDescription = "";
+      if (data.join_existing_team && teamId) {
+        const { data: teamDetails } = await supabase
+          .from('teams')
+          .select('name, readable_team_id')
+          .eq('id', teamId)
+          .single();
+        
+        if (teamDetails) {
+          successDescription = `${data.first_name} ${data.last_name} wurde zum Team "${teamDetails.name}" (${teamDetails.readable_team_id}) hinzugefügt.`;
+        } else {
+          successDescription = `${data.first_name} ${data.last_name} wurde zum Team hinzugefügt.`;
+        }
+      } else {
+        successDescription = `${data.first_name} ${data.last_name} wurde für ${data.start_time} Uhr angemeldet.`;
+      }
+      
       toast({
         title: "Anmeldung erfolgreich!",
-        description: data.join_existing_team 
-          ? `${data.first_name} ${data.last_name} wurde zum Team "${data.team_name}" hinzugefügt.`
-          : `${data.first_name} ${data.last_name} wurde für ${data.start_time} Uhr angemeldet.`,
+        description: successDescription,
       });
       
       einzelanmeldungForm.reset();
@@ -326,12 +340,13 @@ export const CharityRunSignup = () => {
       const eventId = events[0].id;
       console.log('Found active event for team:', { eventId, name: events[0].name });
 
-      // Check if team name already exists
-      console.log('Checking if team name already exists:', data.team_name);
+      // Check if team name already exists (normalize for comparison)
+      const normalizedTeamName = data.team_name.toLowerCase().replace(/\s+/g, '');
+      console.log('Checking if team name already exists:', { original: data.team_name, normalized: normalizedTeamName });
+      
       const { data: existingTeams, error: checkTeamError } = await supabase
         .from('teams')
-        .select('id, name')
-        .eq('name', data.team_name)
+        .select('id, name, readable_team_id')
         .eq('event_id', eventId);
 
       if (checkTeamError) {
@@ -340,8 +355,15 @@ export const CharityRunSignup = () => {
       }
 
       if (existingTeams && existingTeams.length > 0) {
-        console.error('Team name already exists:', data.team_name);
-        throw new Error(`Teamname "${data.team_name}" ist bereits vergeben. Bitte wählen Sie einen anderen Namen.`);
+        // Check for normalized name conflicts
+        const conflictingTeam = existingTeams.find(team => 
+          team.name.toLowerCase().replace(/\s+/g, '') === normalizedTeamName
+        );
+        
+        if (conflictingTeam) {
+          console.error('Team name already exists (normalized):', { original: data.team_name, conflicting: conflictingTeam.name });
+          throw new Error(`Teamname schon vergeben - wenn du dich einem Team hinzufügen willst brauchst du dessen Team ID: ${conflictingTeam.readable_team_id}`);
+        }
       }
 
       // Create team first
@@ -357,7 +379,7 @@ export const CharityRunSignup = () => {
       const { data: createdTeam, error: teamError } = await supabase
         .from('teams')
         .insert(teamData)
-        .select('id, name')
+        .select('id, name, readable_team_id')
         .single();
 
       if (teamError) {
@@ -498,7 +520,7 @@ export const CharityRunSignup = () => {
       const updatedMembers = existingParticipantUpdates.length;
       const newMembers = participants.length;
 
-      let description = `Team "${data.team_name}" mit ${totalMembers} Personen wurde registriert.`;
+      let description = `Team "${data.team_name}" mit ${totalMembers} Personen wurde registriert. Team-ID: ${createdTeam.readable_team_id}`;
       if (updatedMembers > 0) {
         description += ` ${updatedMembers} bereits registrierte Teilnehmer wurden dem Team hinzugefügt.`;
       }
@@ -643,14 +665,14 @@ export const CharityRunSignup = () => {
 
         teamId = teamData.id;
         console.log('Children team created successfully:', { teamId, name: teamData.name });
-      } else if (data.join_existing_team && data.existing_team_name) {
-        console.log('Looking for existing team for children:', data.existing_team_name);
+      } else if (data.join_existing_team && data.existing_team_id) {
+        console.log('Looking for existing team for children by ID:', data.existing_team_id);
         
-        // Find existing team
+        // Find existing team by readable team ID
         const { data: teams, error: teamError } = await supabase
           .from('teams')
-          .select('id, name')
-          .eq('name', data.existing_team_name)
+          .select('id, name, readable_team_id')
+          .eq('readable_team_id', data.existing_team_id)
           .eq('event_id', eventId)
           .limit(1);
 
@@ -660,12 +682,12 @@ export const CharityRunSignup = () => {
         }
 
         if (!teams || teams.length === 0) {
-          console.error('Existing team not found for children:', data.existing_team_name);
-          throw new Error(`Team "${data.existing_team_name}" wurde nicht gefunden. Bitte überprüfen Sie den Teamnamen.`);
+          console.error('Existing team not found for children by ID:', data.existing_team_id);
+          throw new Error(`Team mit ID "${data.existing_team_id}" wurde nicht gefunden. Bitte überprüfen Sie die Team-ID.`);
         }
         
         teamId = teams[0].id;
-        console.log('Found existing team for children:', { teamId, name: teams[0].name });
+        console.log('Found existing team for children by ID:', { teamId, name: teams[0].name, readableId: teams[0].readable_team_id });
       }
 
       // Insert all children as participants
@@ -717,9 +739,43 @@ export const CharityRunSignup = () => {
       }
 
       const childCount = data.children.length;
-      const message = childCount === 1 
-        ? `${data.children[0].first_name} ${data.children[0].last_name} wurde für den Kinderlauf angemeldet.`
-        : `${childCount} Kinder wurden für den Kinderlauf angemeldet.`;
+      let message = "";
+      
+      if (data.join_existing_team && teamId) {
+        // Get team details for success message
+        const { data: teamDetails } = await supabase
+          .from('teams')
+          .select('name, readable_team_id')
+          .eq('id', teamId)
+          .single();
+        
+        if (teamDetails) {
+          message = childCount === 1 
+            ? `${data.children[0].first_name} ${data.children[0].last_name} wurde zum Team "${teamDetails.name}" (${teamDetails.readable_team_id}) hinzugefügt.`
+            : `${childCount} Kinder wurden zum Team "${teamDetails.name}" (${teamDetails.readable_team_id}) hinzugefügt.`;
+        } else {
+          message = childCount === 1 
+            ? `${data.children[0].first_name} ${data.children[0].last_name} wurde zum Team hinzugefügt.`
+            : `${childCount} Kinder wurden zum Team hinzugefügt.`;
+        }
+      } else {
+        message = childCount === 1 
+          ? `${data.children[0].first_name} ${data.children[0].last_name} wurde für den Kinderlauf angemeldet.`
+          : `${childCount} Kinder wurden für den Kinderlauf angemeldet.`;
+        
+        if (teamId) {
+          // They created a new team
+          const { data: teamDetails } = await supabase
+            .from('teams')
+            .select('name, readable_team_id')
+            .eq('id', teamId)
+            .single();
+          
+          if (teamDetails) {
+            message += ` Team-ID: ${teamDetails.readable_team_id}`;
+          }
+        }
+      }
       
       console.log('Children run registration completed successfully');
       toast({
@@ -927,44 +983,29 @@ export const CharityRunSignup = () => {
                   />
 
                   {watchJoinTeam && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FormField
-                        control={einzelanmeldungForm.control}
-                        name="team_name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Teamname *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Die Schnellen Läufer" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={einzelanmeldungForm.control}
-                        name="team_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              Team-ID *
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-sm">Die Teammitglieder haben die Team-ID per E-Mail erhalten</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </FormLabel>
-                            <FormControl>
-                              <Input placeholder="T12345" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                    <FormField
+                      control={einzelanmeldungForm.control}
+                      name="team_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            Team-ID *
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-sm">Die Team-ID erhalten Sie bei der Team-Erstellung</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder="TEAM-0001" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
 
                   <Button type="submit" variant="hero" size="lg" className="w-full">
@@ -1413,45 +1454,31 @@ export const CharityRunSignup = () => {
                       />
 
                       {watchJoinExistingTeam && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <FormField
-                            control={kinderlaufForm.control}
-                            name="existing_team_name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Teamname *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Die Schnellen Läufer" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={kinderlaufForm.control}
-                            name="existing_team_id"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                  Team-ID *
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p className="text-sm">Die Teammitglieder haben die Team-ID per E-Mail erhalten</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </FormLabel>
-                                <FormControl>
-                                  <Input placeholder="T12345" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                        <FormField
+                          control={kinderlaufForm.control}
+                          name="existing_team_id"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex items-center gap-2">
+                                Team-ID *
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-sm">Die Team-ID erhalten Sie bei der Team-Erstellung</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </FormLabel>
+                              <FormControl>
+                                <Input placeholder="TEAM-0001" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       )}
+
                     </>
                   )}
 
