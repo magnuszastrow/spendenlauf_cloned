@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { Users, User, Baby, Clock, Check, Plus, Minus, Phone, Info } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 // Validation schemas
 const einzelanmeldungSchema = z.object({
@@ -21,6 +22,9 @@ const einzelanmeldungSchema = z.object({
   last_name: z.string().min(2, "Nachname muss mindestens 2 Zeichen haben"),
   email: z.string().email("Bitte geben Sie eine gültige E-Mail-Adresse ein"),
   age: z.number().min(3, "Mindestalter 3 Jahre").max(110, "Maximalalter 110 Jahre"),
+  gender: z.enum(["männlich", "weiblich", "divers"], {
+    required_error: "Bitte wählen Sie ein Geschlecht",
+  }),
   start_time: z.enum(["11:00", "14:30"], {
     required_error: "Bitte wählen Sie eine Startzeit",
   }),
@@ -42,6 +46,9 @@ const teamMemberSchema = z.object({
   last_name: z.string().min(2, "Nachname erforderlich"),
   email: z.string().email("Gültige E-Mail erforderlich"),
   age: z.number().min(16, "Mindestalter 16 Jahre").max(99, "Maximalalter 99 Jahre"),
+  gender: z.enum(["männlich", "weiblich", "divers"], {
+    required_error: "Bitte wählen Sie ein Geschlecht",
+  }),
 });
 
 const teamSchema = z.object({
@@ -66,6 +73,9 @@ const childSchema = z.object({
   first_name: z.string().min(2, "Vorname erforderlich"),
   last_name: z.string().min(2, "Nachname erforderlich"),
   age: z.number().min(1, "Mindestalter 1 Jahr").max(9, "Maximalalter 9 Jahre"),
+  gender: z.enum(["männlich", "weiblich", "divers"], {
+    required_error: "Bitte wählen Sie ein Geschlecht",
+  }),
 });
 
 const kinderlaufSchema = z.object({
@@ -110,14 +120,14 @@ export const CharityRunSignup = () => {
     resolver: zodResolver(teamSchema),
     defaultValues: {
       use_shared_email: false,
-      team_members: [{ first_name: "", last_name: "", email: "", age: 18 }],
+      team_members: [{ first_name: "", last_name: "", email: "", age: 18, gender: "männlich" }],
     },
   });
 
   const kinderlaufForm = useForm<KinderlaufForm>({
     resolver: zodResolver(kinderlaufSchema),
     defaultValues: {
-      children: [{ first_name: "", last_name: "", age: 8 }],
+      children: [{ first_name: "", last_name: "", age: 8, gender: "männlich" }],
       join_existing_team: false,
     },
   });
@@ -149,35 +159,234 @@ export const CharityRunSignup = () => {
     }
   }, [watchUseSharedEmail, watchSharedEmail, teamForm, teamMemberFields]);
 
-  const onSubmitEinzelanmeldung = (data: EinzelanmeldungForm) => {
-    console.log("Einzelanmeldung:", data);
-    toast({
-      title: "Anmeldung erfolgreich!",
-      description: data.join_existing_team 
-        ? `${data.first_name} ${data.last_name} wurde zum Team "${data.team_name}" hinzugefügt.`
-        : `${data.first_name} ${data.last_name} wurde für ${data.start_time} Uhr angemeldet.`,
-    });
+  const onSubmitEinzelanmeldung = async (data: EinzelanmeldungForm) => {
+    try {
+      // Get the current event (assuming there's one active event)
+      const { data: events, error: eventsError } = await supabase
+        .from('events')
+        .select('id')
+        .eq('registration_open', true)
+        .limit(1);
+
+      if (eventsError || !events || events.length === 0) {
+        throw new Error('Keine aktive Veranstaltung gefunden');
+      }
+
+      const eventId = events[0].id;
+
+      let teamId = null;
+      
+      if (data.join_existing_team && data.team_name) {
+        // Find existing team by name
+        const { data: teams, error: teamError } = await supabase
+          .from('teams')
+          .select('id')
+          .eq('name', data.team_name)
+          .eq('event_id', eventId)
+          .limit(1);
+
+        if (teamError || !teams || teams.length === 0) {
+          throw new Error('Team nicht gefunden');
+        }
+        teamId = teams[0].id;
+      }
+
+      // Insert participant
+      const { error: participantError } = await supabase
+        .from('participants')
+        .insert({
+          event_id: eventId,
+          team_id: teamId,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          email: data.email,
+          age: data.age,
+          gender: data.gender,
+          participant_type: 'individual'
+        });
+
+      if (participantError) throw participantError;
+
+      toast({
+        title: "Anmeldung erfolgreich!",
+        description: data.join_existing_team 
+          ? `${data.first_name} ${data.last_name} wurde zum Team "${data.team_name}" hinzugefügt.`
+          : `${data.first_name} ${data.last_name} wurde für ${data.start_time} Uhr angemeldet.`,
+      });
+      
+      einzelanmeldungForm.reset();
+    } catch (error) {
+      console.error('Error submitting registration:', error);
+      toast({
+        title: "Fehler bei der Anmeldung",
+        description: error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten",
+        variant: "destructive",
+      });
+    }
   };
 
-  const onSubmitTeam = (data: TeamForm) => {
-    console.log("Teamanmeldung:", data);
-    const totalMembers = data.team_members.length;
-    toast({
-      title: "Team erfolgreich angemeldet!",
-      description: `Team "${data.team_name}" mit ${totalMembers} Personen wurde registriert.`,
-    });
+  const onSubmitTeam = async (data: TeamForm) => {
+    try {
+      // Get the current event
+      const { data: events, error: eventsError } = await supabase
+        .from('events')
+        .select('id')
+        .eq('registration_open', true)
+        .limit(1);
+
+      if (eventsError || !events || events.length === 0) {
+        throw new Error('Keine aktive Veranstaltung gefunden');
+      }
+
+      const eventId = events[0].id;
+
+      // Create team first
+      const { data: teamData, error: teamError } = await supabase
+        .from('teams')
+        .insert({
+          event_id: eventId,
+          name: data.team_name,
+          shared_email: data.use_shared_email,
+          team_email: data.shared_email || null
+        })
+        .select('id')
+        .single();
+
+      if (teamError || !teamData) throw teamError;
+
+      // Insert all team members
+      const participants = data.team_members.map(member => ({
+        event_id: eventId,
+        team_id: teamData.id,
+        first_name: member.first_name,
+        last_name: member.last_name,
+        email: member.email,
+        age: member.age,
+        gender: member.gender,
+        participant_type: 'team'
+      }));
+
+      const { error: participantsError } = await supabase
+        .from('participants')
+        .insert(participants);
+
+      if (participantsError) throw participantsError;
+
+      toast({
+        title: "Team erfolgreich angemeldet!",
+        description: `Team "${data.team_name}" mit ${data.team_members.length} Personen wurde registriert.`,
+      });
+      
+      teamForm.reset();
+    } catch (error) {
+      console.error('Error submitting team registration:', error);
+      toast({
+        title: "Fehler bei der Team-Anmeldung",
+        description: error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten",
+        variant: "destructive",
+      });
+    }
   };
 
-  const onSubmitKinderlauf = (data: KinderlaufForm) => {
-    console.log("Kinderlauf:", data);
-    const childCount = data.children.length;
-    const message = childCount === 1 
-      ? `${data.children[0].first_name} ${data.children[0].last_name} wurde für den Kinderlauf angemeldet.`
-      : `${childCount} Kinder wurden für den Kinderlauf angemeldet.`;
-    toast({
-      title: "Kinderlauf-Anmeldung erfolgreich!",
-      description: message,
-    });
+  const onSubmitKinderlauf = async (data: KinderlaufForm) => {
+    try {
+      // Get the current event
+      const { data: events, error: eventsError } = await supabase
+        .from('events')
+        .select('id')
+        .eq('registration_open', true)
+        .limit(1);
+
+      if (eventsError || !events || events.length === 0) {
+        throw new Error('Keine aktive Veranstaltung gefunden');
+      }
+
+      const eventId = events[0].id;
+
+      // Create guardian first
+      const { data: guardianData, error: guardianError } = await supabase
+        .from('guardians')
+        .insert({
+          first_name: data.parent_name.split(' ')[0] || data.parent_name,
+          last_name: data.parent_name.split(' ').slice(1).join(' ') || '',
+          email: data.parent_email,
+          phone: data.parent_phone
+        })
+        .select('id')
+        .single();
+
+      if (guardianError || !guardianData) throw guardianError;
+
+      let teamId = null;
+
+      // Handle team creation or joining
+      if (data.children.length > 1 && data.team_name && !data.join_existing_team) {
+        // Create new team for multiple children
+        const { data: teamData, error: teamError } = await supabase
+          .from('teams')
+          .insert({
+            event_id: eventId,
+            name: data.team_name,
+            shared_email: false,
+            team_email: data.parent_email
+          })
+          .select('id')
+          .single();
+
+        if (teamError || !teamData) throw teamError;
+        teamId = teamData.id;
+      } else if (data.join_existing_team && data.existing_team_name) {
+        // Find existing team
+        const { data: teams, error: teamError } = await supabase
+          .from('teams')
+          .select('id')
+          .eq('name', data.existing_team_name)
+          .eq('event_id', eventId)
+          .limit(1);
+
+        if (teamError || !teams || teams.length === 0) {
+          throw new Error('Team nicht gefunden');
+        }
+        teamId = teams[0].id;
+      }
+
+      // Insert all children as participants
+      const participants = data.children.map(child => ({
+        event_id: eventId,
+        team_id: teamId,
+        guardian_id: guardianData.id,
+        first_name: child.first_name,
+        last_name: child.last_name,
+        age: child.age,
+        gender: child.gender,
+        participant_type: 'child'
+      }));
+
+      const { error: participantsError } = await supabase
+        .from('participants')
+        .insert(participants);
+
+      if (participantsError) throw participantsError;
+
+      const childCount = data.children.length;
+      const message = childCount === 1 
+        ? `${data.children[0].first_name} ${data.children[0].last_name} wurde für den Kinderlauf angemeldet.`
+        : `${childCount} Kinder wurden für den Kinderlauf angemeldet.`;
+      
+      toast({
+        title: "Kinderlauf-Anmeldung erfolgreich!",
+        description: message,
+      });
+      
+      kinderlaufForm.reset();
+    } catch (error) {
+      console.error('Error submitting children registration:', error);
+      toast({
+        title: "Fehler bei der Kinderlauf-Anmeldung",
+        description: error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -274,6 +483,36 @@ export const CharityRunSignup = () => {
                               {...field} 
                               onChange={(e) => field.onChange(Number(e.target.value))}
                             />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={einzelanmeldungForm.control}
+                      name="gender"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Geschlecht *</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              className="flex flex-row space-x-4"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="männlich" id="gender-m" />
+                                <Label htmlFor="gender-m">Männlich</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="weiblich" id="gender-w" />
+                                <Label htmlFor="gender-w">Weiblich</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="divers" id="gender-d" />
+                                <Label htmlFor="gender-d">Divers</Label>
+                              </div>
+                            </RadioGroup>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -491,44 +730,75 @@ export const CharityRunSignup = () => {
                           />
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <FormField
-                            control={teamForm.control}
-                            name={`team_members.${index}.email`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>E-Mail *</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    type="email" 
-                                    placeholder="max@example.com" 
-                                    {...field} 
-                                    disabled={watchUseSharedEmail}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={teamForm.control}
-                            name={`team_members.${index}.age`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Alter *</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    type="number" 
-                                    placeholder="25" 
-                                    {...field} 
-                                    onChange={(e) => field.onChange(Number(e.target.value))}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                           <FormField
+                             control={teamForm.control}
+                             name={`team_members.${index}.email`}
+                             render={({ field }) => (
+                               <FormItem>
+                                 <FormLabel>E-Mail *</FormLabel>
+                                 <FormControl>
+                                   <Input 
+                                     type="email" 
+                                     placeholder="max@example.com" 
+                                     {...field} 
+                                     disabled={watchUseSharedEmail}
+                                   />
+                                 </FormControl>
+                                 <FormMessage />
+                               </FormItem>
+                             )}
+                           />
+                           <FormField
+                             control={teamForm.control}
+                             name={`team_members.${index}.age`}
+                             render={({ field }) => (
+                               <FormItem>
+                                 <FormLabel>Alter *</FormLabel>
+                                 <FormControl>
+                                   <Input 
+                                     type="number" 
+                                     placeholder="25" 
+                                     {...field} 
+                                     onChange={(e) => field.onChange(Number(e.target.value))}
+                                   />
+                                 </FormControl>
+                                 <FormMessage />
+                               </FormItem>
+                             )}
+                           />
+                         </div>
+
+                         <FormField
+                           control={teamForm.control}
+                           name={`team_members.${index}.gender`}
+                           render={({ field }) => (
+                             <FormItem>
+                               <FormLabel>Geschlecht *</FormLabel>
+                               <FormControl>
+                                 <RadioGroup
+                                   onValueChange={field.onChange}
+                                   value={field.value}
+                                   className="flex flex-row space-x-4"
+                                 >
+                                   <div className="flex items-center space-x-2">
+                                     <RadioGroupItem value="männlich" id={`team-gender-m-${index}`} />
+                                     <Label htmlFor={`team-gender-m-${index}`}>Männlich</Label>
+                                   </div>
+                                   <div className="flex items-center space-x-2">
+                                     <RadioGroupItem value="weiblich" id={`team-gender-w-${index}`} />
+                                     <Label htmlFor={`team-gender-w-${index}`}>Weiblich</Label>
+                                   </div>
+                                   <div className="flex items-center space-x-2">
+                                     <RadioGroupItem value="divers" id={`team-gender-d-${index}`} />
+                                     <Label htmlFor={`team-gender-d-${index}`}>Divers</Label>
+                                   </div>
+                                 </RadioGroup>
+                               </FormControl>
+                               <FormMessage />
+                             </FormItem>
+                           )}
+                         />
                       </div>
                     ))}
 
@@ -536,7 +806,7 @@ export const CharityRunSignup = () => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => appendTeamMember({ first_name: "", last_name: "", email: watchUseSharedEmail ? watchSharedEmail || "" : "", age: 18 })}
+                      onClick={() => appendTeamMember({ first_name: "", last_name: "", email: watchUseSharedEmail ? watchSharedEmail || "" : "", age: 18, gender: "männlich" })}
                       className="w-full"
                     >
                       <Plus className="h-4 w-4 mr-2" />
@@ -653,54 +923,85 @@ export const CharityRunSignup = () => {
                           )}
                         </div>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <FormField
-                            control={kinderlaufForm.control}
-                            name={`children.${index}.first_name`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Vorname *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Anna" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={kinderlaufForm.control}
-                            name={`children.${index}.last_name`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Nachname *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Mustermann" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={kinderlaufForm.control}
-                            name={`children.${index}.age`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Alter *</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    type="number" 
-                                    placeholder="8" 
-                                    min="1" 
-                                    max="9"
-                                    {...field} 
-                                    onChange={(e) => field.onChange(Number(e.target.value))}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                           <FormField
+                             control={kinderlaufForm.control}
+                             name={`children.${index}.first_name`}
+                             render={({ field }) => (
+                               <FormItem>
+                                 <FormLabel>Vorname *</FormLabel>
+                                 <FormControl>
+                                   <Input placeholder="Anna" {...field} />
+                                 </FormControl>
+                                 <FormMessage />
+                               </FormItem>
+                             )}
+                           />
+                           <FormField
+                             control={kinderlaufForm.control}
+                             name={`children.${index}.last_name`}
+                             render={({ field }) => (
+                               <FormItem>
+                                 <FormLabel>Nachname *</FormLabel>
+                                 <FormControl>
+                                   <Input placeholder="Mustermann" {...field} />
+                                 </FormControl>
+                                 <FormMessage />
+                               </FormItem>
+                             )}
+                           />
+                           <FormField
+                             control={kinderlaufForm.control}
+                             name={`children.${index}.age`}
+                             render={({ field }) => (
+                               <FormItem>
+                                 <FormLabel>Alter *</FormLabel>
+                                 <FormControl>
+                                   <Input 
+                                     type="number" 
+                                     placeholder="8" 
+                                     min="1" 
+                                     max="9"
+                                     {...field} 
+                                     onChange={(e) => field.onChange(Number(e.target.value))}
+                                   />
+                                 </FormControl>
+                                 <FormMessage />
+                               </FormItem>
+                             )}
+                           />
+                         </div>
+
+                         <FormField
+                           control={kinderlaufForm.control}
+                           name={`children.${index}.gender`}
+                           render={({ field }) => (
+                             <FormItem>
+                               <FormLabel>Geschlecht *</FormLabel>
+                               <FormControl>
+                                 <RadioGroup
+                                   onValueChange={field.onChange}
+                                   value={field.value}
+                                   className="flex flex-row space-x-4"
+                                 >
+                                   <div className="flex items-center space-x-2">
+                                     <RadioGroupItem value="männlich" id={`child-gender-m-${index}`} />
+                                     <Label htmlFor={`child-gender-m-${index}`}>Männlich</Label>
+                                   </div>
+                                   <div className="flex items-center space-x-2">
+                                     <RadioGroupItem value="weiblich" id={`child-gender-w-${index}`} />
+                                     <Label htmlFor={`child-gender-w-${index}`}>Weiblich</Label>
+                                   </div>
+                                   <div className="flex items-center space-x-2">
+                                     <RadioGroupItem value="divers" id={`child-gender-d-${index}`} />
+                                     <Label htmlFor={`child-gender-d-${index}`}>Divers</Label>
+                                   </div>
+                                 </RadioGroup>
+                               </FormControl>
+                               <FormMessage />
+                             </FormItem>
+                           )}
+                         />
                       </div>
                     ))}
 
@@ -708,7 +1009,7 @@ export const CharityRunSignup = () => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => appendChild({ first_name: "", last_name: "", age: 8 })}
+                      onClick={() => appendChild({ first_name: "", last_name: "", age: 8, gender: "männlich" })}
                       className="w-full"
                     >
                       <Plus className="h-4 w-4 mr-2" />
