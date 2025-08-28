@@ -93,6 +93,7 @@ export type Database = {
           last_name: string
           participant_type: string
           team_id: string | null
+          timeslot_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -107,6 +108,7 @@ export type Database = {
           last_name: string
           participant_type: string
           team_id?: string | null
+          timeslot_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -121,6 +123,7 @@ export type Database = {
           last_name?: string
           participant_type?: string
           team_id?: string | null
+          timeslot_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -143,6 +146,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participants_timeslot_id_fkey"
+            columns: ["timeslot_id"]
+            isOneToOne: false
+            referencedRelation: "timeslots"
             referencedColumns: ["id"]
           },
         ]
@@ -178,6 +188,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "teams_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timeslots: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          max_participants: number
+          name: string
+          time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          max_participants: number
+          name: string
+          time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          max_participants?: number
+          name?: string
+          time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeslots_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
