@@ -218,7 +218,7 @@ export const CharityRunSignup = () => {
           last_name: data.last_name,
           email: data.email,
           age: data.age,
-          gender: data.gender,
+          gender: data.gender === 'männlich' ? 'male' : data.gender === 'weiblich' ? 'female' : 'other',
           participant_type: 'adult'
         });
 
@@ -279,7 +279,7 @@ export const CharityRunSignup = () => {
         last_name: member.last_name,
         email: member.email,
         age: member.age,
-        gender: member.gender,
+        gender: member.gender === 'männlich' ? 'male' : member.gender === 'weiblich' ? 'female' : 'other',
         participant_type: 'adult'
       }));
 
@@ -375,7 +375,7 @@ export const CharityRunSignup = () => {
         first_name: child.first_name,
         last_name: child.last_name,
         age: child.age,
-        gender: child.gender,
+        gender: child.gender === 'männlich' ? 'male' : child.gender === 'weiblich' ? 'female' : 'other',
         participant_type: 'child'
       }));
 
