@@ -40,12 +40,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     try {
+      console.log('Checking user role for user ID:', user.id);
+      
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
         .eq('role', 'admin')
         .maybeSingle();
+
+      console.log('User role query result:', { data, error });
 
       if (error) {
         console.error('Error checking user role:', error);
@@ -54,6 +58,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       setIsAdmin(!!data);
+      console.log('Admin status set to:', !!data);
     } catch (error) {
       console.error('Error checking user role:', error);
       setIsAdmin(false);
