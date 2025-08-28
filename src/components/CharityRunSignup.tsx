@@ -595,51 +595,55 @@ export const CharityRunSignup = () => {
             <TabsContent value="kinderlauf" className="mt-4 sm:mt-6">
               <Form {...kinderlaufForm}>
                 <form onSubmit={kinderlaufForm.handleSubmit(onSubmitKinderlauf)} className="space-y-4 sm:space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Erziehungsberechtigte(r)</h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        control={kinderlaufForm.control}
+                        name="parent_name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Name *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Maria Mustermann" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={kinderlaufForm.control}
+                        name="parent_email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>E-Mail *</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="maria@example.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
                     <FormField
                       control={kinderlaufForm.control}
-                      name="parent_name"
+                      name="parent_phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Name Erziehungsberechtigte(r) *</FormLabel>
+                          <FormLabel className="flex items-center gap-2">
+                            <Phone className="h-4 w-4" />
+                            Telefonnummer *
+                          </FormLabel>
                           <FormControl>
-                            <Input placeholder="Maria Mustermann" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={kinderlaufForm.control}
-                      name="parent_email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>E-Mail Erziehungsberechtigte(r) *</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="maria@example.com" {...field} />
+                            <Input type="tel" placeholder="+49 123 456789" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
-
-                  <FormField
-                    control={kinderlaufForm.control}
-                    name="parent_phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          Telefonnummer Erziehungsberechtigte(r) *
-                        </FormLabel>
-                        <FormControl>
-                          <Input type="tel" placeholder="+49 123 456789" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
