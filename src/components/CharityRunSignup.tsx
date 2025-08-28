@@ -386,24 +386,26 @@ export const CharityRunSignup = () => {
         // Check if this participant already exists as an individual registration
         const { data: existingParticipant, error: checkError } = await supabase
           .from('participants')
-          .select('id, team_id, first_name, last_name')
+          .select('id, team_id, first_name, last_name, email')
+          .eq('first_name', member.first_name)
+          .eq('last_name', member.last_name)
           .eq('email', member.email)
           .eq('event_id', eventId)
           .eq('participant_type', 'adult')
           .maybeSingle();
 
         if (checkError) {
-          console.error(`Error checking existing participant for ${member.email}:`, checkError);
+          console.error(`Error checking existing participant for ${member.first_name} ${member.last_name} (${member.email}):`, checkError);
           throw new Error(`Fehler beim Überprüfen bestehender Teilnehmer: ${checkError.message}`);
         }
 
         if (existingParticipant) {
           if (existingParticipant.team_id) {
-            console.log(`Participant ${member.email} already belongs to a team`);
-            throw new Error(`${member.first_name} ${member.last_name} (${member.email}) ist bereits einem Team zugeordnet.`);
+            console.log(`Participant ${member.first_name} ${member.last_name} (${member.email}) already belongs to a team`);
+            throw new Error(`${member.first_name} ${member.last_name} ist bereits einem Team zugeordnet.`);
           }
 
-          console.log(`Found existing individual participant ${member.email}, will update with team_id`);
+          console.log(`Found existing individual participant ${member.first_name} ${member.last_name} (${member.email}), will update with team_id`);
           existingParticipantUpdates.push({
             id: existingParticipant.id,
             team_id: createdTeam.id,
@@ -414,7 +416,7 @@ export const CharityRunSignup = () => {
             gender: member.gender === 'männlich' ? 'male' : member.gender === 'weiblich' ? 'female' : 'other'
           });
         } else {
-          console.log(`New team member ${member.email}, will create new participant`);
+          console.log(`New team member ${member.first_name} ${member.last_name} (${member.email}), will create new participant`);
           participants.push({
             event_id: eventId,
             team_id: createdTeam.id,
