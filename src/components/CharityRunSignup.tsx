@@ -81,7 +81,7 @@ const kinderlaufSchema = z.object({
   if (data.children.length > 1 && !data.team_name && !data.join_existing_team) {
     return false;
   }
-  if (data.join_existing_team && data.children.length === 1) {
+  if (data.join_existing_team) {
     return data.existing_team_name && data.existing_team_name.length >= 2 && data.existing_team_id && data.existing_team_id.length >= 1;
   }
   return true;
@@ -725,7 +725,7 @@ export const CharityRunSignup = () => {
                     </Button>
                   </div>
 
-                  {watchChildrenCount.length > 1 && (
+                  {watchChildrenCount.length > 1 && !watchJoinExistingTeam && (
                     <FormField
                       control={kinderlaufForm.control}
                       name="team_name"
@@ -741,7 +741,7 @@ export const CharityRunSignup = () => {
                     />
                   )}
 
-                  {watchChildrenCount.length === 1 && (
+                  {watchChildrenCount.length >= 1 && (
                     <>
                       <FormField
                         control={kinderlaufForm.control}
@@ -759,7 +759,10 @@ export const CharityRunSignup = () => {
                                 Zu bestehendem Team hinzufügen
                               </FormLabel>
                               <p className="text-sm text-muted-foreground">
-                                Das Kind soll einem bereits existierenden Team beitreten
+                                {watchChildrenCount.length === 1 
+                                  ? "Das Kind soll einem bereits existierenden Team beitreten"
+                                  : "Die Kinder sollen einem bereits existierenden Team beitreten"
+                                }
                               </p>
                             </div>
                           </FormItem>
