@@ -854,7 +854,7 @@ export const CharityRunSignup = () => {
                         <FormItem>
                           <FormLabel>Nachname *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Mustermann" {...field} />
+                            <Input placeholder="Muster" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1114,7 +1114,7 @@ export const CharityRunSignup = () => {
                               <FormItem>
                                 <FormLabel>Nachname *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Mustermann" {...field} />
+                                  <Input placeholder="Muster" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1256,7 +1256,7 @@ export const CharityRunSignup = () => {
                         <FormItem>
                           <FormLabel>Name Erziehungsberechtigter *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Maria Mustermann" {...field} />
+                            <Input placeholder="Maria Muster" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1336,7 +1336,7 @@ export const CharityRunSignup = () => {
                                <FormItem>
                                  <FormLabel>Nachname *</FormLabel>
                                  <FormControl>
-                                   <Input placeholder="Mustermann" {...field} />
+                                   <Input placeholder="Muster" {...field} />
                                  </FormControl>
                                  <FormMessage />
                                </FormItem>
