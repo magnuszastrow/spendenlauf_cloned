@@ -13,7 +13,7 @@ const Footer = () => {
           spendenlauf.lueneburg@gmail.com
         </a>
       </p>
-      <p className="mb-2">
+      <p className="mb-4">
         <span className="mr-2">📞</span>
         <a 
           href="tel:+4917636387811"
@@ -22,6 +22,14 @@ const Footer = () => {
           0176 363 878 11
         </a>
       </p>
+      <div className="pt-4 border-t border-gray-300">
+        <a 
+          href="/auth"
+          className="inline-flex items-center text-sm text-gray-600 hover:text-primary transition-colors"
+        >
+          🔐 Admin Anmelden
+        </a>
+      </div>
     </footer>
   );
 };

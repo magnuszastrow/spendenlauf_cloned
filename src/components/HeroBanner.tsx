@@ -16,7 +16,7 @@ const HeroBanner = () => {
         className="absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${heroImage})`,
-          backgroundPosition: 'center 40%',
+          backgroundPosition: 'center 20%',
           transform: `translateY(${scrollY * 0.5}px)`,
           backgroundAttachment: 'fixed',
           scale: '1.1'

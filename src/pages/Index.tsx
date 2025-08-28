@@ -18,9 +18,6 @@ const Index = () => {
               Laufen Sie mit uns für einen guten Zweck! Melden Sie sich jetzt an.
             </p>
             <div className="space-x-4">
-              <Link to="/anmeldung">
-                <Button size="lg">Jetzt anmelden</Button>
-              </Link>
               <Link to="/info">
                 <Button variant="outline" size="lg">Mehr Info</Button>
               </Link>
