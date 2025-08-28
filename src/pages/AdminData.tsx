@@ -47,7 +47,7 @@ interface Timeslot {
 }
 
 const AdminData = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
@@ -56,6 +56,20 @@ const AdminData = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("participants");
 
+  // Show loading while auth is loading
+  if (authLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto p-4">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg">Lade Authentifizierung...</div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Redirect if not admin
   if (!user || !isAdmin) {
     return <Navigate to="/auth" replace />;
   }

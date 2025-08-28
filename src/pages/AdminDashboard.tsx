@@ -31,7 +31,7 @@ interface DashboardStats {
 }
 
 const AdminDashboard = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     totalParticipants: 0,
     totalEvents: 0,
@@ -42,6 +42,20 @@ const AdminDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
+  // Show loading while auth is loading
+  if (authLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto p-4">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg">Lade Authentifizierung...</div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Redirect if not admin
   if (!user || !isAdmin) {
     return <Navigate to="/auth" replace />;
   }
@@ -92,13 +106,16 @@ const AdminDashboard = () => {
             .select('*', { count: 'exact', head: true })
             .eq('timeslot_id', slot.id);
 
+          const current = participantCount || 0;
+          const max = slot.max_participants || 1; // Prevent division by zero
+          
           return {
             id: slot.id,
             name: slot.name,
             time: slot.time,
-            current: participantCount || 0,
-            max: slot.max_participants,
-            percentage: ((participantCount || 0) / slot.max_participants) * 100
+            current,
+            max,
+            percentage: (current / max) * 100
           };
         }) || []
       );
