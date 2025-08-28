@@ -1,13 +1,32 @@
+import { useEffect, useState } from "react";
+import heroImage from "@/assets/charity-run-hero.jpg";
+
 const HeroBanner = () => {
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="header relative flex items-center justify-center h-[clamp(150px,30vw,300px)] bg-cover bg-center bg-no-repeat">
-      <div className="absolute inset-0 bg-black/60"></div>
+    <header className="header relative flex items-center justify-center h-[clamp(400px,50vh,600px)] overflow-hidden">
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `url(${heroImage})`,
+          transform: `translateY(${scrollY * 0.5}px)`,
+          backgroundAttachment: 'fixed'
+        }}
+      />
+      <div className="absolute inset-0 bg-black/50"></div>
       {/* Hero Text */}
-      <div className="relative z-10 text-center text-white">
-        <h1 className="text-3xl font-bold uppercase tracking-wider md:text-5xl">
+      <div className="relative z-10 text-center text-white animate-fade-in">
+        <h1 className="text-4xl font-bold uppercase tracking-wider md:text-6xl lg:text-7xl">
           <span className="text-highlight">LÜNEBURGER</span> <span>SPENDENLAUF</span>
         </h1>
-        <p className="mt-3 text-xl md:text-4xl">
+        <p className="mt-4 text-2xl md:text-3xl lg:text-5xl">
           <span>Gemeinsam</span> <span className="text-highlight">für Kinder</span>
         </p>
       </div>
