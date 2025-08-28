@@ -13,6 +13,7 @@ const Navbar = () => {
     { href: "/sponsoren", label: "Sponsoren" },
     { href: "/kontakt", label: "Kontakt" },
     { href: "/faqs", label: "FAQs" },
+    { href: "/anmeldung", label: "Anmeldung" },
   ];
 
   const isActive = (path: string) => location.pathname === path;

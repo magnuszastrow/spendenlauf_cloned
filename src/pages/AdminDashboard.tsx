@@ -42,8 +42,11 @@ const AdminDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
+  console.log('AdminDashboard render:', { user: !!user, isAdmin, authLoading });
+
   // Show loading while auth is loading
   if (authLoading) {
+    console.log('Auth loading...');
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -57,6 +60,7 @@ const AdminDashboard = () => {
 
   // Redirect if not admin
   if (!user || !isAdmin) {
+    console.log('Redirecting to auth - user:', !!user, 'isAdmin:', isAdmin);
     return <Navigate to="/auth" replace />;
   }
 

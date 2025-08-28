@@ -56,8 +56,11 @@ const AdminData = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("participants");
 
+  console.log('AdminData render:', { user: !!user, isAdmin, authLoading });
+
   // Show loading while auth is loading
   if (authLoading) {
+    console.log('Auth loading...');
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -71,6 +74,7 @@ const AdminData = () => {
 
   // Redirect if not admin
   if (!user || !isAdmin) {
+    console.log('Redirecting to auth - user:', !!user, 'isAdmin:', isAdmin);
     return <Navigate to="/auth" replace />;
   }
 

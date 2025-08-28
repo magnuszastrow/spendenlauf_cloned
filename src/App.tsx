@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminData from "./pages/AdminData";
+import Anmeldung from "./pages/Anmeldung";
 
 const queryClient = new QueryClient();
 
@@ -28,7 +29,7 @@ const App = () => (
             <Route path="/info" element={<Info />} />
             <Route path="/sponsoren" element={<Sponsoren />} />
             <Route path="/faqs" element={<FAQs />} />
-            <Route path="/kontakt" element={<Kontakt />} />
+            <Route path="/anmeldung" element={<Anmeldung />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
