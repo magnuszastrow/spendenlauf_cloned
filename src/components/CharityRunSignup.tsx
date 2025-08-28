@@ -15,7 +15,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { Users, User, Baby, Clock, Check, Plus, Minus, Phone, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { SecurityCaptcha } from "@/components/SecurityCaptcha";
 import { checkRateLimit, validateEmail, validateName, validatePhone } from "@/lib/security";
 
 // Validation schemas
@@ -108,11 +107,6 @@ type KinderlaufForm = z.infer<typeof kinderlaufSchema>;
 export const CharityRunSignup = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("einzelanmeldung");
-  
-  // Captcha state for each form
-  const [einzelCaptchaSolved, setEinzelCaptchaSolved] = useState(false);
-  const [teamCaptchaSolved, setTeamCaptchaSolved] = useState(false);
-  const [kinderCaptchaSolved, setKinderCaptchaSolved] = useState(false);
 
   // Forms
   const einzelanmeldungForm = useForm<EinzelanmeldungForm>({
@@ -190,15 +184,6 @@ export const CharityRunSignup = () => {
     });
 
     // Security checks
-    if (!einzelCaptchaSolved) {
-      toast({
-        title: "Sicherheitsüberprüfung erforderlich",
-        description: "Bitte lösen Sie das Captcha.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!checkRateLimit("einzelanmeldung")) {
       toast({
         title: "Zu viele Versuche",
@@ -339,7 +324,6 @@ export const CharityRunSignup = () => {
       });
       
       einzelanmeldungForm.reset();
-      setEinzelCaptchaSolved(false);
     } catch (error) {
       console.error('Individual registration failed:', error);
       const errorMessage = error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten";
@@ -360,15 +344,6 @@ export const CharityRunSignup = () => {
     });
 
     // Security checks
-    if (!teamCaptchaSolved) {
-      toast({
-        title: "Sicherheitsüberprüfung erforderlich",
-        description: "Bitte lösen Sie das Captcha.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!checkRateLimit("team")) {
       toast({
         title: "Zu viele Versuche",
@@ -1112,11 +1087,7 @@ export const CharityRunSignup = () => {
                     />
                    )}
 
-                   <SecurityCaptcha 
-                     onValidation={setEinzelCaptchaSolved} 
-                   />
-
-                   <Button type="submit" variant="hero" size="lg" className="w-full" disabled={!einzelCaptchaSolved}>
+                   <Button type="submit" variant="hero" size="lg" className="w-full">
                      <Check className="mr-2 h-4 w-4" />
                      {watchJoinTeam ? "Team beitreten" : "Einzelanmeldung abschicken"}
                    </Button>
@@ -1344,11 +1315,7 @@ export const CharityRunSignup = () => {
                     )}
                    />
 
-                   <SecurityCaptcha 
-                     onValidation={setTeamCaptchaSolved} 
-                   />
-
-                   <Button type="submit" variant="hero" size="lg" className="w-full" disabled={!teamCaptchaSolved}>
+                   <Button type="submit" variant="hero" size="lg" className="w-full">
                     <Users className="mr-2 h-4 w-4" />
                     Team anmelden
                   </Button>
@@ -1601,11 +1568,7 @@ export const CharityRunSignup = () => {
                     </p>
                    </div>
 
-                   <SecurityCaptcha 
-                     onValidation={setKinderCaptchaSolved} 
-                   />
-
-                   <Button type="submit" variant="sport" size="lg" className="w-full" disabled={!kinderCaptchaSolved}>
+                   <Button type="submit" variant="sport" size="lg" className="w-full">
                     <Baby className="mr-2 h-4 w-4" />
                     Zum Kinderlauf anmelden
                   </Button>
