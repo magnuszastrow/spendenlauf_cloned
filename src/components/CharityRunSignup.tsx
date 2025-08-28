@@ -46,13 +46,20 @@ const teamMemberSchema = z.object({
 
 const teamSchema = z.object({
   team_name: z.string().min(2, "Teamname muss mindestens 2 Zeichen haben"),
-  team_leader_name: z.string().min(2, "Name des Teamleiters erforderlich"),
-  team_leader_email: z.string().email("Bitte geben Sie eine gültige E-Mail-Adresse ein"),
-  use_leader_email_for_all: z.boolean().default(false),
+  shared_email: z.string().optional(),
+  use_shared_email: z.boolean().default(false),
   team_members: z.array(teamMemberSchema).min(1, "Mindestens ein Teammitglied erforderlich"),
   start_time: z.enum(["11:00", "14:30"], {
     required_error: "Bitte wählen Sie eine Startzeit",
   }),
+}).refine((data) => {
+  if (data.use_shared_email) {
+    return data.shared_email && data.shared_email.length > 0 && z.string().email().safeParse(data.shared_email).success;
+  }
+  return true;
+}, {
+  message: "E-Mail ist erforderlich wenn 'Eine E-Mail für alle' aktiviert ist",
+  path: ["shared_email"],
 });
 
 const childSchema = z.object({
@@ -102,7 +109,7 @@ export const CharityRunSignup = () => {
   const teamForm = useForm<TeamForm>({
     resolver: zodResolver(teamSchema),
     defaultValues: {
-      use_leader_email_for_all: false,
+      use_shared_email: false,
       team_members: [{ first_name: "", last_name: "", email: "", age: 18 }],
     },
   });
@@ -128,19 +135,19 @@ export const CharityRunSignup = () => {
 
   // Watch values for conditional rendering
   const watchJoinTeam = einzelanmeldungForm.watch("join_existing_team");
-  const watchUseLeaderEmail = teamForm.watch("use_leader_email_for_all");
-  const watchLeaderEmail = teamForm.watch("team_leader_email");
+  const watchUseSharedEmail = teamForm.watch("use_shared_email");
+  const watchSharedEmail = teamForm.watch("shared_email");
   const watchChildrenCount = kinderlaufForm.watch("children");
   const watchJoinExistingTeam = kinderlaufForm.watch("join_existing_team");
 
-  // Update team member emails when leader email option is toggled
+  // Update team member emails when shared email option is toggled
   React.useEffect(() => {
-    if (watchUseLeaderEmail && watchLeaderEmail) {
+    if (watchUseSharedEmail && watchSharedEmail) {
       teamMemberFields.forEach((_, index) => {
-        teamForm.setValue(`team_members.${index}.email`, watchLeaderEmail);
+        teamForm.setValue(`team_members.${index}.email`, watchSharedEmail);
       });
     }
-  }, [watchUseLeaderEmail, watchLeaderEmail, teamForm, teamMemberFields]);
+  }, [watchUseSharedEmail, watchSharedEmail, teamForm, teamMemberFields]);
 
   const onSubmitEinzelanmeldung = (data: EinzelanmeldungForm) => {
     console.log("Einzelanmeldung:", data);
@@ -154,7 +161,7 @@ export const CharityRunSignup = () => {
 
   const onSubmitTeam = (data: TeamForm) => {
     console.log("Teamanmeldung:", data);
-    const totalMembers = data.team_members.length + 1; // +1 for leader
+    const totalMembers = data.team_members.length;
     toast({
       title: "Team erfolgreich angemeldet!",
       description: `Team "${data.team_name}" mit ${totalMembers} Personen wurde registriert.`,
@@ -391,29 +398,15 @@ export const CharityRunSignup = () => {
             <TabsContent value="team" className="mt-4 sm:mt-6">
               <Form {...teamForm}>
                 <form onSubmit={teamForm.handleSubmit(onSubmitTeam)} className="space-y-4 sm:space-y-6">
-                  <FormField
-                    control={teamForm.control}
-                    name="team_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Teamname *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Die Schnellen Läufer" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={teamForm.control}
-                      name="team_leader_name"
+                      name="team_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Name Teamleiter *</FormLabel>
+                          <FormLabel>Teamname *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Max Mustermann" {...field} />
+                            <Input placeholder="Die Schnellen Läufer" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -421,12 +414,12 @@ export const CharityRunSignup = () => {
                     />
                     <FormField
                       control={teamForm.control}
-                      name="team_leader_email"
+                      name="shared_email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>E-Mail Teamleiter *</FormLabel>
+                          <FormLabel>E-Mail für alle (optional)</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="teamleiter@example.com" {...field} />
+                            <Input type="email" placeholder="team@example.com" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -436,7 +429,7 @@ export const CharityRunSignup = () => {
 
                   <FormField
                     control={teamForm.control}
-                    name="use_leader_email_for_all"
+                    name="use_shared_email"
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                         <FormControl>
@@ -447,7 +440,7 @@ export const CharityRunSignup = () => {
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel>
-                            Teamleiter E-Mail für alle verwenden
+                            Eine E-Mail für alle Teammitglieder verwenden
                           </FormLabel>
                           <p className="text-sm text-muted-foreground">
                             Alle Teammitglieder erhalten die gleiche E-Mail-Adresse
@@ -459,13 +452,13 @@ export const CharityRunSignup = () => {
 
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-medium">Teammitglieder ({teamMemberFields.length + 1} Personen)</h3>
+                      <h3 className="text-lg font-medium">Teammitglieder ({teamMemberFields.length} Personen)</h3>
                     </div>
 
                     {teamMemberFields.map((field, index) => (
                       <div key={field.id} className="p-4 border rounded-lg space-y-4">
                         <div className="flex items-center justify-between">
-                          <h4 className="font-medium">Teammitglied {index + 2}</h4>
+                          <h4 className="font-medium">Teammitglied {index + 1}</h4>
                           {teamMemberFields.length > 1 && (
                             <Button
                               type="button"
@@ -519,7 +512,7 @@ export const CharityRunSignup = () => {
                                     type="email" 
                                     placeholder="max@example.com" 
                                     {...field} 
-                                    disabled={watchUseLeaderEmail}
+                                    disabled={watchUseSharedEmail}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -552,7 +545,7 @@ export const CharityRunSignup = () => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => appendTeamMember({ first_name: "", last_name: "", email: watchUseLeaderEmail ? watchLeaderEmail || "" : "", age: 18 })}
+                      onClick={() => appendTeamMember({ first_name: "", last_name: "", email: watchUseSharedEmail ? watchSharedEmail || "" : "", age: 18 })}
                       className="w-full"
                     >
                       <Plus className="h-4 w-4 mr-2" />
