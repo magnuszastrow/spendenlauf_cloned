@@ -11,8 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { Users, User, Baby, Clock, Check, Plus, Minus, UserPlus, Phone } from "lucide-react";
+import { Users, User, Baby, Clock, Check, Plus, Minus, UserPlus, Phone, Info } from "lucide-react";
 
 // Validation schemas
 const einzelanmeldungSchema = z.object({
@@ -173,7 +174,8 @@ export const CharityRunSignup = () => {
   };
 
   return (
-    <div className="w-full">
+    <TooltipProvider>
+      <div className="w-full">
       <div className="text-center mb-6 px-2">
         <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
           Charity Run Anmeldung
@@ -356,7 +358,17 @@ export const CharityRunSignup = () => {
                         name="team_id"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Team-ID *</FormLabel>
+                            <FormLabel className="flex items-center gap-2">
+                              Team-ID *
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-sm">Die Teammitglieder haben die Team-ID per E-Mail erhalten</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </FormLabel>
                             <FormControl>
                               <Input placeholder="T12345" {...field} />
                             </FormControl>
@@ -448,21 +460,12 @@ export const CharityRunSignup = () => {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium">Teammitglieder ({teamMemberFields.length + 1} Personen)</h3>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => appendTeamMember({ first_name: "", last_name: "", email: watchUseLeaderEmail ? watchLeaderEmail || "" : "", age: 18 })}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Mitglied hinzufügen
-                      </Button>
                     </div>
 
                     {teamMemberFields.map((field, index) => (
                       <div key={field.id} className="p-4 border rounded-lg space-y-4">
                         <div className="flex items-center justify-between">
-                          <h4 className="font-medium">Teammitglied {index + 1}</h4>
+                          <h4 className="font-medium">Teammitglied {index + 2}</h4>
                           {teamMemberFields.length > 1 && (
                             <Button
                               type="button"
@@ -544,6 +547,17 @@ export const CharityRunSignup = () => {
                         </div>
                       </div>
                     ))}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => appendTeamMember({ first_name: "", last_name: "", email: watchUseLeaderEmail ? watchLeaderEmail || "" : "", age: 18 })}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Mitglied hinzufügen
+                    </Button>
                   </div>
 
                   <FormField
@@ -637,15 +651,6 @@ export const CharityRunSignup = () => {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium">Kinder ({childrenFields.length})</h3>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => appendChild({ first_name: "", last_name: "", age: 8 })}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Kind hinzufügen
-                      </Button>
                     </div>
 
                     {childrenFields.map((field, index) => (
@@ -714,6 +719,17 @@ export const CharityRunSignup = () => {
                         </div>
                       </div>
                     ))}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => appendChild({ first_name: "", last_name: "", age: 8 })}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Kind hinzufügen
+                    </Button>
                   </div>
 
                   {watchChildrenCount.length > 1 && (
@@ -777,7 +793,17 @@ export const CharityRunSignup = () => {
                             name="existing_team_id"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Team-ID *</FormLabel>
+                                <FormLabel className="flex items-center gap-2">
+                                  Team-ID *
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="text-sm">Die Teammitglieder haben die Team-ID per E-Mail erhalten</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </FormLabel>
                                 <FormControl>
                                   <Input placeholder="T12345" {...field} />
                                 </FormControl>
@@ -808,5 +834,6 @@ export const CharityRunSignup = () => {
         </CardContent>
       </Card>
     </div>
+    </TooltipProvider>
   );
 };
