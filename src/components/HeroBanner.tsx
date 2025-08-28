@@ -13,11 +13,13 @@ const HeroBanner = () => {
   return (
     <header className="header relative flex items-center justify-center h-[clamp(400px,50vh,600px)] overflow-hidden">
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${heroImage})`,
+          backgroundPosition: 'center 40%',
           transform: `translateY(${scrollY * 0.5}px)`,
-          backgroundAttachment: 'fixed'
+          backgroundAttachment: 'fixed',
+          scale: '1.1'
         }}
       />
       <div className="absolute inset-0 bg-black/50"></div>
