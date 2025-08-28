@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { Users, User, Baby, Clock, Check, Plus, Minus, UserPlus, Phone, Info } from "lucide-react";
+import { Users, User, Baby, Clock, Check, Plus, Minus, Phone, Info } from "lucide-react";
 
 // Validation schemas
 const einzelanmeldungSchema = z.object({
