@@ -44,35 +44,26 @@ const Navbar = () => {
               ))}
             </ul>
             
-            <div className="ml-4 flex items-center space-x-2">
-              {user ? (
-                <>
-                  {isAdmin && (
-                    <Link to="/admin/dashboard">
-                      <Button variant="outline" size="sm">
-                        <Shield className="h-4 w-4 mr-2" />
-                        Admin
-                      </Button>
-                    </Link>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => signOut()}
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Abmelden
-                  </Button>
-                </>
-              ) : (
-                <Link to="/auth">
-                  <Button variant="outline" size="sm">
-                    <User className="h-4 w-4 mr-2" />
-                    Anmelden
-                  </Button>
+            {user && (
+              <div className="ml-4 flex items-center space-x-4">
+                <Link
+                  to="/admin/dashboard"
+                  className={`text-black hover:text-gray-700 transition-colors ${
+                    isActive("/admin/dashboard") ? "font-semibold" : ""
+                  }`}
+                >
+                  Dashboard
                 </Link>
-              )}
-            </div>
+                <Link
+                  to="/admin/data"
+                  className={`text-black hover:text-gray-700 transition-colors ${
+                    isActive("/admin/data") ? "font-semibold" : ""
+                  }`}
+                >
+                  Data
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </nav>
