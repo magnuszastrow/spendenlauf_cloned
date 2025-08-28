@@ -23,7 +23,7 @@ const Layout = ({ children, showHero = true }: LayoutProps) => {
         <Navbar />
         
         {/* Main content with proper spacing for fixed header */}
-        <div className="md:pt-20 flex-1">
+        <div className={showHero ? "flex-1" : "md:pt-20 flex-1"}>
           {showHero && <HeroBanner />}
           <main className="flex-1">
             {children}

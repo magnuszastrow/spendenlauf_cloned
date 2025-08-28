@@ -10,7 +10,6 @@ const Index = () => {
   
   return (
     <Layout>
-      <HeroBanner />
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="space-y-8">
           <div className="text-center">
