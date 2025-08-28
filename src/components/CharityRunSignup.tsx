@@ -20,7 +20,7 @@ const einzelanmeldungSchema = z.object({
   first_name: z.string().min(2, "Vorname muss mindestens 2 Zeichen haben"),
   last_name: z.string().min(2, "Nachname muss mindestens 2 Zeichen haben"),
   email: z.string().email("Bitte geben Sie eine gültige E-Mail-Adresse ein"),
-  age: z.number().min(16, "Mindestalter 16 Jahre").max(99, "Maximalalter 99 Jahre"),
+  age: z.number().min(3, "Mindestalter 3 Jahre").max(110, "Maximalalter 110 Jahre"),
   start_time: z.enum(["11:00", "14:30"], {
     required_error: "Bitte wählen Sie eine Startzeit",
   }),
