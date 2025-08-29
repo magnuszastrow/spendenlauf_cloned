@@ -272,8 +272,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      ensure_children_timeslot_exists: {
+        Args: { p_event_id: string }
+        Returns: string
+      }
       generate_readable_team_id: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_appropriate_timeslot: {
+        Args: { p_age: number; p_event_id: string; p_participant_type: string }
         Returns: string
       }
       get_next_runner_number: {
