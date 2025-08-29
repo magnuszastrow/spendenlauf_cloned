@@ -12,7 +12,21 @@ export const securityConfig = {
 };
 
 /**
- * Sanitize HTML input to prevent XSS attacks
+ * Light sanitization for real-time input - preserves whitespace during typing
+ */
+export const sanitizeInputLight = (input: string): string => {
+  if (!input || typeof input !== 'string') return '';
+  
+  // Remove HTML tags but preserve internal whitespace
+  return DOMPurify.sanitize(input, { 
+    ALLOWED_TAGS: [], 
+    ALLOWED_ATTR: [],
+    KEEP_CONTENT: true 
+  });
+};
+
+/**
+ * Full sanitization for form submission - removes leading/trailing whitespace
  */
 export const sanitizeInput = (input: string): string => {
   if (!input || typeof input !== 'string') return '';
