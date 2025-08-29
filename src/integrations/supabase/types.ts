@@ -291,6 +291,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      get_team_details_admin: {
+        Args: { team_identifier: string }
+        Returns: {
+          event_id: string
+          id: string
+          name: string
+          readable_team_id: string
+          shared_email: boolean
+          team_email: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
