@@ -22,7 +22,7 @@ const HeroBanner = () => {
   const backgroundPosition = isMobile ? 'center 10%' : 'center 20%';
 
   return (
-    <header className="header relative flex items-center justify-center h-[clamp(400px,50vh,600px)] overflow-hidden">
+    <header className="header relative flex items-center justify-center h-[clamp(300px,33vh,400px)] md:h-[clamp(400px,50vh,600px)] overflow-hidden">
       <div 
         className="absolute inset-0 bg-cover bg-no-repeat"
         style={{
