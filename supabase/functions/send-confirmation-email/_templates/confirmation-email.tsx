@@ -146,7 +146,8 @@ const main = {
 const container = {
   paddingLeft: '12px',
   paddingRight: '12px',
-  margin: '0 auto',
+  marginLeft: '20px',
+  marginRight: 'auto',
   maxWidth: '600px',
 }
 
