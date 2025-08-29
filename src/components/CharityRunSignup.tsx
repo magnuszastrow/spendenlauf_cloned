@@ -30,6 +30,12 @@ const einzelanmeldungSchema = z.object({
   join_existing_team: z.boolean().default(false),
   team_name: z.string().optional(),
   team_id: z.string().optional(),
+  liability_waiver: z.boolean().refine((val) => val === true, {
+    message: "Sie müssen die Haftungsbefreiung akzeptieren",
+  }),
+  privacy_consent: z.boolean().refine((val) => val === true, {
+    message: "Sie müssen der Datenschutzerklärung zustimmen",
+  }),
 }).refine((data) => {
   if (data.join_existing_team) {
     return data.team_id && data.team_id.length >= 1;
@@ -65,6 +71,12 @@ const teamSchema = z.object({
   use_shared_email: z.boolean().default(false),
   timeslot_id: z.string().min(1, "Bitte wählen Sie eine Startzeit"),
   team_members: z.array(teamMemberSchema).min(1, "Mindestens ein Teammitglied erforderlich"),
+  liability_waiver: z.boolean().refine((val) => val === true, {
+    message: "Sie müssen die Haftungsbefreiung akzeptieren",
+  }),
+  privacy_consent: z.boolean().refine((val) => val === true, {
+    message: "Sie müssen der Datenschutzerklärung zustimmen",
+  }),
 }).refine((data) => {
   if (data.use_shared_email) {
     return data.shared_email && data.shared_email.length > 0 && z.string().email().safeParse(data.shared_email).success;
@@ -92,6 +104,12 @@ const kinderlaufSchema = z.object({
   team_name: z.string().optional(),
   join_existing_team: z.boolean().default(false),
   existing_team_id: z.string().optional(),
+  liability_waiver: z.boolean().refine((val) => val === true, {
+    message: "Sie müssen die Haftungsbefreiung akzeptieren",
+  }),
+  privacy_consent: z.boolean().refine((val) => val === true, {
+    message: "Sie müssen der Datenschutzerklärung zustimmen",
+  }),
 }).refine((data) => {
   if (data.children.length > 1 && !data.team_name && !data.join_existing_team) {
     return false;
@@ -136,6 +154,8 @@ export const CharityRunSignup = () => {
       timeslot_id: "",
       join_existing_team: false,
       team_id: "",
+      liability_waiver: false,
+      privacy_consent: false,
     },
   });
 
@@ -147,6 +167,8 @@ export const CharityRunSignup = () => {
       use_shared_email: false,
       timeslot_id: "",
       team_members: [{ first_name: "", last_name: "", email: "", age: 18, gender: "männlich" }],
+      liability_waiver: false,
+      privacy_consent: false,
     },
   });
 
@@ -160,6 +182,8 @@ export const CharityRunSignup = () => {
       team_name: "",
       join_existing_team: false,
       existing_team_id: "",
+      liability_waiver: false,
+      privacy_consent: false,
     },
   });
 
@@ -1312,9 +1336,53 @@ export const CharityRunSignup = () => {
                         </FormItem>
                       )}
                     />
-                   )}
+                    )}
 
-                    <Button 
+                    {/* Legal Checkboxes */}
+                    <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                      <FormField
+                        control={einzelanmeldungForm.control}
+                        name="liability_waiver"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-sm font-normal">
+                                Hiermit bestätige ich, dass ich auf eigene Verantwortung teilnehme und die Veranstalter von jeglicher Haftung für Schäden, Verletzungen oder Unfälle freistelle.
+                              </FormLabel>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={einzelanmeldungForm.control}
+                        name="privacy_consent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-sm font-normal">
+                                Ich willige ein, dass meine persönlichen Daten gemäß der Datenschutzerklärung zur Durchführung der Veranstaltung verarbeitet werden. Diese Einwilligung kann ich jederzeit widerrufen.
+                              </FormLabel>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                     <Button 
                       type="submit" 
                       variant="hero" 
                       size="lg" 
@@ -1588,9 +1656,53 @@ export const CharityRunSignup = () => {
                       <Clock className="inline h-4 w-4 mr-2" />
                       Zeitslots werden automatisch zugewiesen: Teammitglieder (ab 16 Jahre) starten beim Hauptlauf.
                     </p>
-                  </div>
+                   </div>
 
-                   <Button
+                    {/* Legal Checkboxes */}
+                    <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                      <FormField
+                        control={teamForm.control}
+                        name="liability_waiver"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-sm font-normal">
+                                Hiermit bestätige ich, dass ich auf eigene Verantwortung teilnehme und die Veranstalter von jeglicher Haftung für Schäden, Verletzungen oder Unfälle freistelle.
+                              </FormLabel>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={teamForm.control}
+                        name="privacy_consent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-sm font-normal">
+                                Ich willige ein, dass meine persönlichen Daten gemäß der Datenschutzerklärung zur Durchführung der Veranstaltung verarbeitet werden. Diese Einwilligung kann ich jederzeit widerrufen.
+                              </FormLabel>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <Button
                      type="submit" 
                      variant="hero" 
                      size="lg" 
@@ -1856,9 +1968,53 @@ export const CharityRunSignup = () => {
                       <Baby className="inline h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                       Der Kinderlauf findet um 13:30 Uhr statt und ist für Kinder bis 10 Jahren geeignet.
                     </p>
-                   </div>
+                    </div>
 
-                   <Button 
+                    {/* Legal Checkboxes */}
+                    <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                      <FormField
+                        control={kinderlaufForm.control}
+                        name="liability_waiver"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-sm font-normal">
+                                Hiermit bestätige ich, dass ich auf eigene Verantwortung teilnehme und die Veranstalter von jeglicher Haftung für Schäden, Verletzungen oder Unfälle freistelle.
+                              </FormLabel>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={kinderlaufForm.control}
+                        name="privacy_consent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-sm font-normal">
+                                Ich willige ein, dass meine persönlichen Daten gemäß der Datenschutzerklärung zur Durchführung der Veranstaltung verarbeitet werden. Diese Einwilligung kann ich jederzeit widerrufen.
+                              </FormLabel>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <Button 
                      type="submit" 
                      variant="sport" 
                      size="lg" 
