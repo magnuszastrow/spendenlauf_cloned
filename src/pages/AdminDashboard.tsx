@@ -44,30 +44,6 @@ const AdminDashboard = () => {
 
   console.log('AdminDashboard render:', { user: !!user, isAdmin, authLoading });
 
-  // Show loading while auth is loading
-  if (authLoading) {
-    console.log('Auth loading...');
-    return (
-      <Layout>
-        <div className="container mx-auto p-4">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-lg">Lade Authentifizierung...</div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  // Redirect if not admin
-  if (!user || !isAdmin) {
-    console.log('Redirecting to auth - user:', !!user, 'isAdmin:', isAdmin);
-    return <Navigate to="/auth" replace />;
-  }
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
   const loadDashboardData = async () => {
     setLoading(true);
     try {
@@ -146,6 +122,33 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+
+  // Load dashboard data - must be called before any conditional returns
+  useEffect(() => {
+    if (user && isAdmin && !authLoading) {
+      loadDashboardData();
+    }
+  }, [user, isAdmin, authLoading]);
+
+  // Show loading while auth is loading
+  if (authLoading) {
+    console.log('Auth loading...');
+    return (
+      <Layout>
+        <div className="container mx-auto p-4">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg">Lade Authentifizierung...</div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Redirect if not admin
+  if (!user || !isAdmin) {
+    console.log('Redirecting to auth - user:', !!user, 'isAdmin:', isAdmin);
+    return <Navigate to="/auth" replace />;
+  }
 
   const getProgressColor = (percentage: number) => {
     if (percentage >= 90) return "bg-destructive";
