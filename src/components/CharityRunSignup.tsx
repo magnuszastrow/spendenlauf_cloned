@@ -318,6 +318,29 @@ export const CharityRunSignup = () => {
         successDescription = `${data.first_name} ${data.last_name} wurde für ${data.start_time} Uhr angemeldet.`;
       }
       
+      // Send confirmation email
+      try {
+        console.log('Sending confirmation email for individual registration...');
+        const { error: emailError } = await supabase.functions.invoke('send-confirmation-email', {
+          body: {
+            firstName: data.first_name,
+            email: data.email,
+            registrationType: 'individual',
+            startTime: data.start_time,
+          }
+        });
+        
+        if (emailError) {
+          console.error('Failed to send confirmation email:', emailError);
+          // Don't fail the registration, just log the error
+        } else {
+          console.log('Confirmation email sent successfully');
+        }
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError);
+        // Don't fail the registration, just log the error
+      }
+      
       toast({
         title: "Anmeldung erfolgreich!",
         description: successDescription,
@@ -605,6 +628,57 @@ export const CharityRunSignup = () => {
       }
 
       console.log('Team registration completed successfully');
+      
+      // Send confirmation emails to all team members
+      try {
+        console.log('Sending confirmation emails for team registration...');
+        
+        const emailPromises = data.team_members.map(async (member) => {
+          const { error: emailError } = await supabase.functions.invoke('send-confirmation-email', {
+            body: {
+              firstName: member.first_name,
+              email: member.email,
+              registrationType: 'team',
+              teamName: data.team_name,
+              teamStartTime: data.start_time,
+            }
+          });
+          
+          if (emailError) {
+            console.error(`Failed to send confirmation email to ${member.email}:`, emailError);
+          } else {
+            console.log(`Confirmation email sent to ${member.email}`);
+          }
+        });
+        
+        // If shared email is used, send one email to the shared address
+        if (data.use_shared_email && data.shared_email) {
+          emailPromises.push(
+            supabase.functions.invoke('send-confirmation-email', {
+              body: {
+                firstName: data.team_members[0]?.first_name || 'Team',
+                email: data.shared_email,
+                registrationType: 'team',
+                teamName: data.team_name,
+                teamStartTime: data.start_time,
+              }
+            }).then(({ error: emailError }) => {
+              if (emailError) {
+                console.error(`Failed to send shared confirmation email to ${data.shared_email}:`, emailError);
+              } else {
+                console.log(`Shared confirmation email sent to ${data.shared_email}`);
+              }
+            })
+          );
+        }
+        
+        // Wait for all emails to complete (don't fail registration if emails fail)
+        await Promise.allSettled(emailPromises);
+      } catch (emailError) {
+        console.error('Error sending team confirmation emails:', emailError);
+        // Don't fail the registration, just log the error
+      }
+      
       toast({
         title: "Team erfolgreich angemeldet!",
         description: description,
@@ -857,6 +931,29 @@ export const CharityRunSignup = () => {
       }
       
       console.log('Children run registration completed successfully');
+      
+      // Send confirmation email to parent/guardian
+      try {
+        console.log('Sending confirmation email for children run registration...');
+        const { error: emailError } = await supabase.functions.invoke('send-confirmation-email', {
+          body: {
+            firstName: data.parent_name.split(' ')[0] || data.parent_name,
+            email: data.parent_email,
+            registrationType: 'children',
+          }
+        });
+        
+        if (emailError) {
+          console.error('Failed to send children run confirmation email:', emailError);
+          // Don't fail the registration, just log the error
+        } else {
+          console.log('Children run confirmation email sent successfully');
+        }
+      } catch (emailError) {
+        console.error('Error sending children run confirmation email:', emailError);
+        // Don't fail the registration, just log the error
+      }
+      
       toast({
         title: "Kinderlauf-Anmeldung erfolgreich!",
         description: message,
