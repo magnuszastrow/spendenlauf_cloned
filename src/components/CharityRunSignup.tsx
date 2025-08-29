@@ -294,13 +294,12 @@ export const CharityRunSignup = () => {
       
       if (data.join_existing_team && data.team_id) {
         console.log('Looking for existing team by ID:', data.team_id);
-        // Find existing team by readable team ID
-        const { data: teams, error: teamError } = await supabase
-          .from('teams')
-          .select('id, name, readable_team_id')
-          .eq('readable_team_id', data.team_id)
-          .eq('event_id', eventId)
-          .limit(1);
+        // Find existing team by readable team ID using secure lookup
+        const { data: teamLookupResult, error: teamError } = await supabase
+          .rpc('lookup_team_by_id_or_name', { team_identifier: data.team_id });
+        
+        // Filter by event_id since the RPC function doesn't do this
+        const teams = teamLookupResult?.filter(team => team.event_id === eventId) || [];
 
         if (teamError) {
           console.error('Database error fetching team by ID:', teamError);
@@ -895,13 +894,12 @@ export const CharityRunSignup = () => {
       } else if (data.join_existing_team && data.existing_team_id) {
         console.log('Looking for existing team for children by ID:', data.existing_team_id);
         
-        // Find existing team by readable team ID
-        const { data: teams, error: teamError } = await supabase
-          .from('teams')
-          .select('id, name, readable_team_id')
-          .eq('readable_team_id', data.existing_team_id)
-          .eq('event_id', eventId)
-          .limit(1);
+        // Find existing team by readable team ID using secure lookup
+        const { data: teamLookupResult, error: teamError } = await supabase
+          .rpc('lookup_team_by_id_or_name', { team_identifier: data.existing_team_id });
+        
+        // Filter by event_id since the RPC function doesn't do this
+        const teams = teamLookupResult?.filter(team => team.event_id === eventId) || [];
 
         if (teamError) {
           console.error('Database error fetching existing team for children:', teamError);

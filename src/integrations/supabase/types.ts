@@ -209,6 +209,7 @@ export type Database = {
           max_participants: number
           name: string
           time: string
+          type: Database["public"]["Enums"]["slot_type"]
           updated_at: string
         }
         Insert: {
@@ -218,6 +219,7 @@ export type Database = {
           max_participants: number
           name: string
           time: string
+          type?: Database["public"]["Enums"]["slot_type"]
           updated_at?: string
         }
         Update: {
@@ -227,6 +229,7 @@ export type Database = {
           max_participants?: number
           name?: string
           time?: string
+          type?: Database["public"]["Enums"]["slot_type"]
           updated_at?: string
         }
         Relationships: [
@@ -297,9 +300,19 @@ export type Database = {
           readable_team_id: string
         }[]
       }
+      lookup_team_secure: {
+        Args: { team_identifier: string }
+        Returns: {
+          event_id: string
+          id: string
+          name: string
+          readable_team_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "viewer"
+      slot_type: "children" | "normal"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -428,6 +441,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "viewer"],
+      slot_type: ["children", "normal"],
     },
   },
 } as const
