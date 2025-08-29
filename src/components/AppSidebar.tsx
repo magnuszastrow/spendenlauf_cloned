@@ -28,26 +28,26 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Sidebar>
-      <SidebarHeader>
+    <Sidebar className="bg-highlight border-r-0">
+      <SidebarHeader className="bg-highlight">
         <div className="flex items-center gap-2 px-2">
           <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
             <span className="text-xs">Logo</span>
           </div>
-          <h2 className="font-semibold text-sidebar-foreground">Spendenlauf</h2>
+          <h2 className="font-semibold text-foreground">Spendenlauf</h2>
         </div>
       </SidebarHeader>
       
-      <SidebarContent>
+      <SidebarContent className="bg-highlight">
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-foreground/70">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)} className="text-base py-3 h-auto">
                     <Link to={item.url}>
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -58,33 +58,43 @@ export function AppSidebar() {
         </SidebarGroup>
         
         <SidebarGroup>
-          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-foreground/70">Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {user ? (
                 <>
                   {isAdmin && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isActive('/admin/dashboard')}>
-                        <Link to="/admin/dashboard">
-                          <Shield className="h-4 w-4" />
-                          <span>Admin</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/admin/dashboard')} className="text-base py-3 h-auto">
+                          <Link to="/admin/dashboard">
+                            <Shield className="h-5 w-5" />
+                            <span>Dashboard</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/admin/data')} className="text-base py-3 h-auto">
+                          <Link to="/admin/data">
+                            <User className="h-5 w-5" />
+                            <span>Data</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </>
                   )}
                   <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => signOut()}>
-                      <LogOut className="h-4 w-4" />
+                    <SidebarMenuButton onClick={() => signOut()} className="text-base py-3 h-auto">
+                      <LogOut className="h-5 w-5" />
                       <span>Abmelden</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </>
               ) : (
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/auth')}>
+                  <SidebarMenuButton asChild isActive={isActive('/auth')} className="text-base py-3 h-auto">
                     <Link to="/auth">
-                      <User className="h-4 w-4" />
+                      <User className="h-5 w-5" />
                       <span>Anmelden</span>
                     </Link>
                   </SidebarMenuButton>

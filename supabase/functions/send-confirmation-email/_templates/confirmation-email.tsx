@@ -16,6 +16,7 @@ interface ConfirmationEmailProps {
   startTime?: string
   teamName?: string
   teamStartTime?: string
+  teamId?: string
 }
 
 export const ConfirmationEmail = ({
@@ -24,6 +25,7 @@ export const ConfirmationEmail = ({
   startTime,
   teamName,
   teamStartTime,
+  teamId,
 }: ConfirmationEmailProps) => {
   const getTypeSpecificContent = () => {
     switch (registrationType) {
@@ -44,6 +46,16 @@ export const ConfirmationEmail = ({
             <Text style={text}>
               Euer Team <strong>{teamName}</strong> ist für den Durchlauf um <strong>{teamStartTime}</strong> angemeldet.
             </Text>
+            {teamId && (
+              <Text style={text}>
+                <strong>Team-ID:</strong> {teamId}
+              </Text>
+            )}
+            {teamId && (
+              <Text style={text}>
+                Falls sich jemand eurem Team anschließen möchte funktioniert das über folgende Team-ID: <strong>{teamId}</strong>
+              </Text>
+            )}
             <Text style={text}>
               Wir bitten Euch, 30 Minuten vor Laufbeginn vor Ort zu sein, um eure Startnummer abzuholen und die Einweisung zu erhalten.
             </Text>

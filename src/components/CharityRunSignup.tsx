@@ -17,7 +17,7 @@ import { Users, User, Baby, Clock, Check, Plus, Minus, Phone, Info } from "lucid
 import { supabase } from "@/integrations/supabase/client";
 import { checkRateLimit, validateEmail, validateName, validatePhone } from "@/lib/security";
 
-// Validation schemas
+// Validation schemas - Updated to use dynamic timeslot IDs
 const einzelanmeldungSchema = z.object({
   first_name: z.string().min(2, "Vorname muss mindestens 2 Zeichen haben"),
   last_name: z.string().min(2, "Nachname muss mindestens 2 Zeichen haben"),
@@ -26,7 +26,7 @@ const einzelanmeldungSchema = z.object({
   gender: z.enum(["männlich", "weiblich", "divers"], {
     required_error: "Bitte wählen Sie ein Geschlecht",
   }),
-  start_time: z.enum(["11:00", "14:30"], {
+  timeslot_id: z.string({
     required_error: "Bitte wählen Sie eine Startzeit",
   }),
   join_existing_team: z.boolean().default(false),
@@ -57,7 +57,7 @@ const teamSchema = z.object({
   shared_email: z.string().optional(),
   use_shared_email: z.boolean().default(false),
   team_members: z.array(teamMemberSchema).min(1, "Mindestens ein Teammitglied erforderlich"),
-  start_time: z.enum(["11:00", "14:30"], {
+  timeslot_id: z.string({
     required_error: "Bitte wählen Sie eine Startzeit",
   }),
 }).refine((data) => {
@@ -107,8 +107,18 @@ type KinderlaufForm = z.infer<typeof kinderlaufSchema>;
 export const CharityRunSignup = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("einzelanmeldung");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timeslots, setTimeslots] = useState<Array<{
+    id: string;
+    name: string;
+    time: string;
+    max_participants: number;
+    current_participants: number;
+    is_full: boolean;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Forms
+  // Forms - Updated with dynamic timeslot IDs
   const einzelanmeldungForm = useForm<EinzelanmeldungForm>({
     resolver: zodResolver(einzelanmeldungSchema),
     defaultValues: {
@@ -117,7 +127,7 @@ export const CharityRunSignup = () => {
       email: "",
       age: 18,
       gender: "männlich",
-      start_time: "11:00",
+      timeslot_id: "",
       join_existing_team: false,
       team_id: "",
     },
@@ -130,7 +140,7 @@ export const CharityRunSignup = () => {
       shared_email: "",
       use_shared_email: false,
       team_members: [{ first_name: "", last_name: "", email: "", age: 18, gender: "männlich" }],
-      start_time: "11:00",
+      timeslot_id: "",
     },
   });
 
@@ -165,6 +175,51 @@ export const CharityRunSignup = () => {
   const watchChildrenCount = kinderlaufForm.watch("children");
   const watchJoinExistingTeam = kinderlaufForm.watch("join_existing_team");
 
+  // Load timeslots on component mount
+  React.useEffect(() => {
+    const loadTimeslots = async () => {
+      try {
+        const { data: events } = await supabase
+          .from('events')
+          .select('id')
+          .eq('registration_open', true)
+          .limit(1);
+
+        if (events && events.length > 0) {
+          const { data: timeslotsData } = await supabase
+            .from('timeslots')
+            .select(`
+              id,
+              name,
+              time,
+              max_participants,
+              participants!timeslot_id(count)
+            `)
+            .eq('event_id', events[0].id)
+            .order('time');
+
+          if (timeslotsData) {
+            const processedTimeslots = timeslotsData.map(slot => ({
+              id: slot.id,
+              name: slot.name,
+              time: slot.time,
+              max_participants: slot.max_participants,
+              current_participants: slot.participants[0]?.count || 0,
+              is_full: (slot.participants[0]?.count || 0) >= slot.max_participants
+            }));
+            setTimeslots(processedTimeslots);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading timeslots:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTimeslots();
+  }, []);
+
   // Update team member emails when shared email option is toggled
   React.useEffect(() => {
     if (watchUseSharedEmail && watchSharedEmail) {
@@ -175,6 +230,7 @@ export const CharityRunSignup = () => {
   }, [watchUseSharedEmail, watchSharedEmail, teamForm, teamMemberFields]);
 
   const onSubmitEinzelanmeldung = async (data: EinzelanmeldungForm) => {
+    setIsSubmitting(true);
     console.log('Starting individual registration submission:', { 
       firstName: data.first_name, 
       lastName: data.last_name,
@@ -315,20 +371,26 @@ export const CharityRunSignup = () => {
           successDescription = `${data.first_name} ${data.last_name} wurde zum Team hinzugefügt.`;
         }
       } else {
-        successDescription = `${data.first_name} ${data.last_name} wurde für ${data.start_time} Uhr angemeldet.`;
+        const selectedTimeslot = timeslots.find(ts => ts.id === data.timeslot_id);
+        successDescription = `${data.first_name} ${data.last_name} wurde für ${selectedTimeslot?.name || 'ausgewählten Zeitslot'} angemeldet.`;
       }
       
-      // Send confirmation email
-      try {
-        console.log('Sending confirmation email for individual registration...');
-        const { error: emailError } = await supabase.functions.invoke('send-confirmation-email', {
-          body: {
-            firstName: data.first_name,
-            email: data.email,
-            registrationType: 'individual',
-            startTime: data.start_time,
-          }
-        });
+        // Send confirmation email
+        try {
+          console.log('Sending confirmation email for individual registration...');
+          
+          // Get selected timeslot details for confirmation
+          const selectedTimeslot = timeslots.find(ts => ts.id === data.timeslot_id);
+          const timeslotTime = selectedTimeslot ? selectedTimeslot.time.substring(0, 5) : 'N/A';
+          
+          const { error: emailError } = await supabase.functions.invoke('send-confirmation-email', {
+            body: {
+              firstName: data.first_name,
+              email: data.email,
+              registrationType: 'individual',
+              startTime: timeslotTime,
+            }
+          });
         
         if (emailError) {
           console.error('Failed to send confirmation email:', emailError);
@@ -356,10 +418,13 @@ export const CharityRunSignup = () => {
         description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const onSubmitTeam = async (data: TeamForm) => {
+    setIsSubmitting(true);
     console.log('Starting team registration submission:', { 
       teamName: data.team_name, 
       memberCount: data.team_members.length,
@@ -634,13 +699,18 @@ export const CharityRunSignup = () => {
         console.log('Sending confirmation emails for team registration...');
         
         const emailPromises = data.team_members.map(async (member) => {
+          // Get selected timeslot details for confirmation
+          const selectedTimeslot = timeslots.find(ts => ts.id === data.timeslot_id);
+          const timeslotTime = selectedTimeslot ? selectedTimeslot.time.substring(0, 5) : 'N/A';
+          
           const { error: emailError } = await supabase.functions.invoke('send-confirmation-email', {
             body: {
               firstName: member.first_name,
               email: member.email,
               registrationType: 'team',
               teamName: data.team_name,
-              teamStartTime: data.start_time,
+              teamStartTime: timeslotTime,
+              teamId: createdTeam.readable_team_id,
             }
           });
           
@@ -653,6 +723,9 @@ export const CharityRunSignup = () => {
         
         // If shared email is used, send one email to the shared address
         if (data.use_shared_email && data.shared_email) {
+          const selectedTimeslot = timeslots.find(ts => ts.id === data.timeslot_id);
+          const timeslotTime = selectedTimeslot ? selectedTimeslot.time.substring(0, 5) : 'N/A';
+          
           emailPromises.push(
             supabase.functions.invoke('send-confirmation-email', {
               body: {
@@ -660,7 +733,8 @@ export const CharityRunSignup = () => {
                 email: data.shared_email,
                 registrationType: 'team',
                 teamName: data.team_name,
-                teamStartTime: data.start_time,
+                teamStartTime: timeslotTime,
+                teamId: createdTeam.readable_team_id,
               }
             }).then(({ error: emailError }) => {
               if (emailError) {
@@ -1104,35 +1178,65 @@ export const CharityRunSignup = () => {
                   </div>
 
                   {!watchJoinTeam && (
-                    <FormField
-                      control={einzelanmeldungForm.control}
-                      name="start_time"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <Clock className="h-4 w-4" />
-                            Wähle deine Startzeit *
-                          </FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              value={field.value}
-                              className="flex flex-col space-y-3"
-                            >
-                              <div className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:bg-accent/50 transition-colors">
-                                <RadioGroupItem value="11:00" id="time1" />
-                                <Label htmlFor="time1" className="text-sm sm:text-base cursor-pointer flex-1">11:00 Uhr - Durchlauf 1</Label>
+                  <FormField
+                    control={einzelanmeldungForm.control}
+                    name="timeslot_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          Wähle deine Startzeit *
+                        </FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            className="flex flex-col space-y-3"
+                          >
+                            {loading ? (
+                              <div className="p-4 text-center text-muted-foreground">
+                                Lade Zeitslots...
                               </div>
-                              <div className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:bg-accent/50 transition-colors">
-                                <RadioGroupItem value="14:30" id="time2" />
-                                <Label htmlFor="time2" className="text-sm sm:text-base cursor-pointer flex-1">14:30 Uhr - Durchlauf 2</Label>
+                            ) : timeslots.filter(slot => slot.name !== 'Kinderlauf').map((slot) => (
+                              <div 
+                                key={slot.id}
+                                className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors ${
+                                  slot.is_full 
+                                    ? 'border-muted bg-muted/20 opacity-50 cursor-not-allowed' 
+                                    : 'border-input hover:bg-accent/50 cursor-pointer'
+                                }`}
+                              >
+                                <RadioGroupItem 
+                                  value={slot.id} 
+                                  id={`time-${slot.id}`} 
+                                  disabled={slot.is_full}
+                                />
+                                <Label 
+                                  htmlFor={`time-${slot.id}`} 
+                                  className={`text-sm sm:text-base flex-1 ${
+                                    slot.is_full ? 'cursor-not-allowed' : 'cursor-pointer'
+                                  }`}
+                                >
+                                  {slot.time.substring(0, 5)} Uhr - {slot.name}
+                                  {slot.is_full && (
+                                    <span className="ml-2 text-xs text-muted-foreground">
+                                      (Ausgebucht: {slot.current_participants}/{slot.max_participants})
+                                    </span>
+                                  )}
+                                  {!slot.is_full && (
+                                    <span className="ml-2 text-xs text-muted-foreground">
+                                      ({slot.current_participants}/{slot.max_participants} Plätze)
+                                    </span>
+                                  )}
+                                </Label>
                               </div>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                   />
                   )}
 
                   <FormField
@@ -1184,10 +1288,25 @@ export const CharityRunSignup = () => {
                     />
                    )}
 
-                   <Button type="submit" variant="hero" size="lg" className="w-full">
-                     <Check className="mr-2 h-4 w-4" />
-                     {watchJoinTeam ? "Team beitreten" : "Einzelanmeldung abschicken"}
-                   </Button>
+                    <Button 
+                      type="submit" 
+                      variant="hero" 
+                      size="lg" 
+                      className="w-full" 
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground" />
+                          Wird verarbeitet...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="mr-2 h-4 w-4" />
+                          {watchJoinTeam ? "Team beitreten" : "Einzelanmeldung abschicken"}
+                        </>
+                      )}
+                    </Button>
                 </form>
               </Form>
             </TabsContent>
@@ -1382,40 +1501,85 @@ export const CharityRunSignup = () => {
                     </Button>
                   </div>
 
-                  <FormField
-                    control={teamForm.control}
-                    name="start_time"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          Wähle die Startzeit für das Team *
-                        </FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="flex flex-col space-y-3"
-                          >
-                            <div className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:bg-accent/50 transition-colors">
-                              <RadioGroupItem value="11:00" id="team-time1" />
-                              <Label htmlFor="team-time1" className="text-sm sm:text-base cursor-pointer flex-1">11:00 Uhr - Durchlauf 1</Label>
-                            </div>
-                            <div className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:bg-accent/50 transition-colors">
-                              <RadioGroupItem value="14:30" id="team-time2" />
-                              <Label htmlFor="team-time2" className="text-sm sm:text-base cursor-pointer flex-1">14:30 Uhr - Durchlauf 2</Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                   />
+                   <FormField
+                     control={teamForm.control}
+                     name="timeslot_id"
+                     render={({ field }) => (
+                       <FormItem>
+                         <FormLabel className="flex items-center gap-2">
+                           <Clock className="h-4 w-4" />
+                           Wähle die Startzeit für das Team *
+                         </FormLabel>
+                         <FormControl>
+                           <RadioGroup
+                             onValueChange={field.onChange}
+                             value={field.value}
+                             className="flex flex-col space-y-3"
+                           >
+                             {loading ? (
+                               <div className="p-4 text-center text-muted-foreground">
+                                 Lade Zeitslots...
+                               </div>
+                             ) : timeslots.filter(slot => slot.name !== 'Kinderlauf').map((slot) => (
+                               <div 
+                                 key={slot.id}
+                                 className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors ${
+                                   slot.is_full 
+                                     ? 'border-muted bg-muted/20 opacity-50 cursor-not-allowed' 
+                                     : 'border-input hover:bg-accent/50 cursor-pointer'
+                                 }`}
+                               >
+                                 <RadioGroupItem 
+                                   value={slot.id} 
+                                   id={`team-time-${slot.id}`} 
+                                   disabled={slot.is_full}
+                                 />
+                                 <Label 
+                                   htmlFor={`team-time-${slot.id}`} 
+                                   className={`text-sm sm:text-base flex-1 ${
+                                     slot.is_full ? 'cursor-not-allowed' : 'cursor-pointer'
+                                   }`}
+                                 >
+                                   {slot.time.substring(0, 5)} Uhr - {slot.name}
+                                   {slot.is_full && (
+                                     <span className="ml-2 text-xs text-muted-foreground">
+                                       (Ausgebucht: {slot.current_participants}/{slot.max_participants})
+                                     </span>
+                                   )}
+                                   {!slot.is_full && (
+                                     <span className="ml-2 text-xs text-muted-foreground">
+                                       ({slot.current_participants}/{slot.max_participants} Plätze)
+                                     </span>
+                                   )}
+                                 </Label>
+                               </div>
+                             ))}
+                           </RadioGroup>
+                         </FormControl>
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                    />
 
-                   <Button type="submit" variant="hero" size="lg" className="w-full">
-                    <Users className="mr-2 h-4 w-4" />
-                    Team anmelden
-                  </Button>
+                   <Button 
+                     type="submit" 
+                     variant="hero" 
+                     size="lg" 
+                     className="w-full"
+                     disabled={isSubmitting}
+                   >
+                     {isSubmitting ? (
+                       <>
+                         <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground" />
+                         Wird verarbeitet...
+                       </>
+                     ) : (
+                       <>
+                         <Users className="mr-2 h-4 w-4" />
+                         Team anmelden
+                       </>
+                     )}
+                   </Button>
                 </form>
               </Form>
             </TabsContent>
@@ -1665,10 +1829,25 @@ export const CharityRunSignup = () => {
                     </p>
                    </div>
 
-                   <Button type="submit" variant="sport" size="lg" className="w-full">
-                    <Baby className="mr-2 h-4 w-4" />
-                    Zum Kinderlauf anmelden
-                  </Button>
+                   <Button 
+                     type="submit" 
+                     variant="sport" 
+                     size="lg" 
+                     className="w-full"
+                     disabled={isSubmitting}
+                   >
+                     {isSubmitting ? (
+                       <>
+                         <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground" />
+                         Wird verarbeitet...
+                       </>
+                     ) : (
+                       <>
+                         <Baby className="mr-2 h-4 w-4" />
+                         Zum Kinderlauf anmelden
+                       </>
+                     )}
+                   </Button>
                 </form>
               </Form>
             </TabsContent>
