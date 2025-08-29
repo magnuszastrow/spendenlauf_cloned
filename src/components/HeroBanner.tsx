@@ -1,14 +1,25 @@
 import { useEffect, useState } from "react";
-import heroImage from "@/assets/Titelbild_cropped.JPEG";
+import heroImage from "@/assets/Titelbild_cropped.jpeg";
 
 const HeroBanner = () => {
   const [scrollY, setScrollY] = useState(0);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleResize);
+    
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
+
+  const isMobile = windowWidth < 768;
+  const backgroundPosition = isMobile ? 'center 10%' : 'center 20%';
 
   return (
     <header className="header relative flex items-center justify-center h-[clamp(400px,50vh,600px)] overflow-hidden">
@@ -16,9 +27,8 @@ const HeroBanner = () => {
         className="absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${heroImage})`,
-          backgroundPosition: 'center 20%',
+          backgroundPosition,
           transform: `translateY(${scrollY * 0.5}px)`,
-          backgroundAttachment: 'fixed',
           scale: '1.1'
         }}
       />
