@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/sidebar";
 
 const navigationItems = [
-  { title: "Home", url: "/", icon: Home },
+  { title: "Anmeldung", url: "/anmeldung", icon: User },
+  { title: "Home", url: "/info", icon: Home },
   { title: "Info", url: "/info", icon: Info },
   { title: "Sponsoren", url: "/sponsoren", icon: Users },
   { title: "FAQs", url: "/faqs", icon: HelpCircle },
