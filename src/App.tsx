@@ -10,6 +10,7 @@ import Sponsoren from "./pages/Sponsoren";
 import FAQs from "./pages/FAQs";
 import Kontakt from "./pages/Kontakt";
 import Impressum from "./pages/Impressum";
+import Datenschutz from "./pages/Datenschutz";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/faqs" element={<FAQs />} />
             <Route path="/kontakt" element={<Kontakt />} />
             <Route path="/impressum" element={<Impressum />} />
+            <Route path="/datenschutz" element={<Datenschutz />} />
             <Route path="/anmeldung" element={<Anmeldung />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />

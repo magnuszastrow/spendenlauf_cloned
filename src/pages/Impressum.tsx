@@ -71,9 +71,13 @@ const Impressum = () => {
           <section>
             <h2 className="text-xl font-semibold mb-3 text-foreground">Datenschutz</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Die Nutzung unserer Webseite ist in der Regel ohne Angabe personenbezogener Daten möglich. 
-              Soweit auf unseren Seiten personenbezogene Daten (beispielsweise Name, Anschrift oder E-Mail-Adressen) 
-              erhoben werden, erfolgt dies, soweit möglich, stets auf freiwilliger Basis.
+              Informationen zum Datenschutz und zur Verarbeitung personenbezogener Daten finden Sie in unserer{" "}
+              <a 
+                href="/datenschutz"
+                className="text-primary hover:underline transition-colors font-medium"
+              >
+                Datenschutzerklärung
+              </a>.
             </p>
           </section>
         </div>

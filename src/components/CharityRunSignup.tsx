@@ -1373,7 +1373,15 @@ export const CharityRunSignup = () => {
                             </FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel className="text-sm font-normal">
-                                Ich willige ein, dass meine persönlichen Daten gemäß der Datenschutzerklärung zur Durchführung der Veranstaltung verarbeitet werden. Diese Einwilligung kann ich jederzeit widerrufen.
+                                Ich willige ein, dass meine persönlichen Daten gemäß der{" "}
+                                <a 
+                                  href="/datenschutz" 
+                                  target="_blank"
+                                  className="text-primary hover:underline font-medium"
+                                >
+                                  Datenschutzerklärung
+                                </a>{" "}
+                                zur Durchführung der Veranstaltung verarbeitet werden. Diese Einwilligung kann ich jederzeit widerrufen.
                               </FormLabel>
                             </div>
                             <FormMessage />
@@ -1693,7 +1701,15 @@ export const CharityRunSignup = () => {
                             </FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel className="text-sm font-normal">
-                                Ich willige ein, dass meine persönlichen Daten gemäß der Datenschutzerklärung zur Durchführung der Veranstaltung verarbeitet werden. Diese Einwilligung kann ich jederzeit widerrufen.
+                                Ich willige ein, dass meine persönlichen Daten gemäß der{" "}
+                                <a 
+                                  href="/datenschutz" 
+                                  target="_blank"
+                                  className="text-primary hover:underline font-medium"
+                                >
+                                  Datenschutzerklärung
+                                </a>{" "}
+                                zur Durchführung der Veranstaltung verarbeitet werden. Diese Einwilligung kann ich jederzeit widerrufen.
                               </FormLabel>
                             </div>
                             <FormMessage />
@@ -2005,7 +2021,15 @@ export const CharityRunSignup = () => {
                             </FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel className="text-sm font-normal">
-                                Ich willige ein, dass meine persönlichen Daten gemäß der Datenschutzerklärung zur Durchführung der Veranstaltung verarbeitet werden. Diese Einwilligung kann ich jederzeit widerrufen.
+                                Ich willige ein, dass meine persönlichen Daten gemäß der{" "}
+                                <a 
+                                  href="/datenschutz" 
+                                  target="_blank"
+                                  className="text-primary hover:underline font-medium"
+                                >
+                                  Datenschutzerklärung
+                                </a>{" "}
+                                zur Durchführung der Veranstaltung verarbeitet werden. Diese Einwilligung kann ich jederzeit widerrufen.
                               </FormLabel>
                             </div>
                             <FormMessage />
