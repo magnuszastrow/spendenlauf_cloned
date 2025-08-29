@@ -87,7 +87,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // Send email using Resend
     const { data, error } = await resend.emails.send({
-      from: 'Spendenlauf Lüneburg <spendenlauf.lueneburg@gmail.com>',
+      from: 'Spendenlauf Lüneburg <onboarding@resend.dev>',
       to: [email],
       subject: 'Bestätigung zur Anmeldung – 2. Lüneburger Spendenlauf',
       html,

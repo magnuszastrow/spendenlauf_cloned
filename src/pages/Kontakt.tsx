@@ -28,10 +28,10 @@ const Kontakt = () => {
               <p className="text-foreground">
                 <strong>E-Mail:</strong>{" "}
                 <a
-                  href="mailto:spendenlauf.lueneburg@gmail.com"
+                  href="mailto:onboarding@resend.dev"
                   className="text-primary hover:underline break-words"
                 >
-                  spendenlauf.lueneburg@gmail.com
+                  onboarding@resend.dev
                 </a>
               </p>
             </section>
