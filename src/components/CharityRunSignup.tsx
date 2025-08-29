@@ -17,7 +17,7 @@ import { Users, User, Baby, Clock, Check, Plus, Minus, Phone, Info } from "lucid
 import { supabase } from "@/integrations/supabase/client";
 import { checkRateLimit, validateEmail, validateName, validatePhone } from "@/lib/security";
 
-// Validation schemas - Updated for automatic timeslot assignment
+// Validation schemas - Updated for manual timeslot selection for adults
 const einzelanmeldungSchema = z.object({
   first_name: z.string().min(2, "Vorname muss mindestens 2 Zeichen haben"),
   last_name: z.string().min(2, "Nachname muss mindestens 2 Zeichen haben"),
@@ -26,6 +26,7 @@ const einzelanmeldungSchema = z.object({
   gender: z.enum(["männlich", "weiblich", "divers"], {
     required_error: "Bitte wählen Sie ein Geschlecht",
   }),
+  timeslot_id: z.string().optional(),
   join_existing_team: z.boolean().default(false),
   team_name: z.string().optional(),
   team_id: z.string().optional(),
@@ -37,6 +38,15 @@ const einzelanmeldungSchema = z.object({
 }, {
   message: "Team-ID ist erforderlich um einem bestehenden Team beizutreten",
   path: ["team_id"],
+}).refine((data) => {
+  // Require timeslot selection for adults (age >= 10)
+  if (data.age >= 10) {
+    return data.timeslot_id && data.timeslot_id.length > 0;
+  }
+  return true;
+}, {
+  message: "Bitte wählen Sie eine Startzeit",
+  path: ["timeslot_id"],
 });
 
 const teamMemberSchema = z.object({
@@ -53,6 +63,7 @@ const teamSchema = z.object({
   team_name: z.string().min(2, "Teamname muss mindestens 2 Zeichen haben"),
   shared_email: z.string().optional(),
   use_shared_email: z.boolean().default(false),
+  timeslot_id: z.string().min(1, "Bitte wählen Sie eine Startzeit"),
   team_members: z.array(teamMemberSchema).min(1, "Mindestens ein Teammitglied erforderlich"),
 }).refine((data) => {
   if (data.use_shared_email) {
@@ -113,7 +124,7 @@ export const CharityRunSignup = () => {
   }>>([]);
   const [loading, setLoading] = useState(true);
 
-  // Forms - Updated with dynamic timeslot IDs
+  // Forms - Updated with timeslot selection for adults
   const einzelanmeldungForm = useForm<EinzelanmeldungForm>({
     resolver: zodResolver(einzelanmeldungSchema),
     defaultValues: {
@@ -122,6 +133,7 @@ export const CharityRunSignup = () => {
       email: "",
       age: 18,
       gender: "männlich",
+      timeslot_id: "",
       join_existing_team: false,
       team_id: "",
     },
@@ -133,6 +145,7 @@ export const CharityRunSignup = () => {
       team_name: "",
       shared_email: "",
       use_shared_email: false,
+      timeslot_id: "",
       team_members: [{ first_name: "", last_name: "", email: "", age: 18, gender: "männlich" }],
     },
   });
@@ -190,6 +203,7 @@ export const CharityRunSignup = () => {
               participants!timeslot_id(count)
             `)
             .eq('event_id', events[0].id)
+            .eq('type', 'normal') // Only load normal timeslots for adult selection
             .order('time');
 
           if (timeslotsData) {
@@ -315,7 +329,7 @@ export const CharityRunSignup = () => {
         console.log('Found team by ID:', { teamId, name: teams[0].name, readableId: teams[0].readable_team_id });
       }
 
-      // Prepare participant data (timeslot will be auto-assigned by trigger)
+      // Prepare participant data (include selected timeslot for adults, auto-assign for children)
       const participantData = {
         event_id: eventId,
         team_id: teamId,
@@ -324,7 +338,8 @@ export const CharityRunSignup = () => {
         email: data.email,
         age: data.age,
         gender: data.gender === 'männlich' ? 'male' : data.gender === 'weiblich' ? 'female' : 'other',
-        participant_type: data.age < 10 ? 'child' : 'adult'
+        participant_type: data.age < 10 ? 'child' : 'adult',
+        ...(data.age >= 10 && data.timeslot_id ? { timeslot_id: data.timeslot_id } : {})
       };
 
       console.log('Inserting participant:', { ...participantData, email: '[REDACTED]' });
@@ -600,6 +615,7 @@ export const CharityRunSignup = () => {
           existingParticipantUpdates.push({
             id: existingParticipant.id,
             team_id: createdTeam.id,
+            timeslot_id: data.timeslot_id,
             // Update other fields in case they changed
             first_name: member.first_name,
             last_name: member.last_name,
@@ -611,6 +627,7 @@ export const CharityRunSignup = () => {
           participants.push({
             event_id: eventId,
             team_id: createdTeam.id,
+            timeslot_id: data.timeslot_id,
             first_name: member.first_name,
             last_name: member.last_name,
             email: member.email,
@@ -630,6 +647,7 @@ export const CharityRunSignup = () => {
             .from('participants')
             .update({
               team_id: update.team_id,
+              timeslot_id: update.timeslot_id,
               first_name: update.first_name,
               last_name: update.last_name,
               age: update.age,
@@ -1181,14 +1199,63 @@ export const CharityRunSignup = () => {
                     />
                   </div>
 
-                  <div className="p-4 bg-accent/10 border border-accent/20 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      <Clock className="inline h-4 w-4 mr-2" />
-                      Zeitslots werden automatisch basierend auf dem Alter zugewiesen:
-                      <br />• Unter 10 Jahre: Kinderlauf (09:00 Uhr)
-                      <br />• Ab 16 Jahre: Hauptlauf (automatische Verteilung)
-                    </p>
-                  </div>
+                  {/* Watch age to show timeslot selection for adults */}
+                  {einzelanmeldungForm.watch("age") >= 10 ? (
+                    <FormField
+                      control={einzelanmeldungForm.control}
+                      name="timeslot_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Startzeit *</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              className="space-y-2"
+                            >
+                              {loading ? (
+                                <div className="text-sm text-muted-foreground">Lädt verfügbare Startzeiten...</div>
+                              ) : timeslots.length > 0 ? (
+                                timeslots.map((timeslot) => (
+                                  <div key={timeslot.id} className="flex items-center space-x-2 p-3 rounded-md border">
+                                    <RadioGroupItem 
+                                      value={timeslot.id} 
+                                      id={`timeslot-${timeslot.id}`}
+                                      disabled={timeslot.is_full}
+                                    />
+                                    <Label 
+                                      htmlFor={`timeslot-${timeslot.id}`}
+                                      className={`flex-1 ${timeslot.is_full ? 'text-muted-foreground' : ''}`}
+                                    >
+                                      <div className="flex justify-between items-center">
+                                        <span>
+                                          {timeslot.name} - {timeslot.time.substring(0, 5)} Uhr
+                                        </span>
+                                        <span className="text-sm text-muted-foreground">
+                                          {timeslot.current_participants}/{timeslot.max_participants}
+                                          {timeslot.is_full && " (Ausgebucht)"}
+                                        </span>
+                                      </div>
+                                    </Label>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="text-sm text-muted-foreground">Keine verfügbaren Startzeiten gefunden.</div>
+                              )}
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ) : (
+                    <div className="p-4 bg-accent/10 border border-accent/20 rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        <Clock className="inline h-4 w-4 mr-2" />
+                        Kinder unter 10 Jahren werden automatisch dem Kinderlauf (09:00 Uhr) zugeordnet.
+                      </p>
+                    </div>
+                  )}
 
                   <FormField
                     control={einzelanmeldungForm.control}
@@ -1314,6 +1381,54 @@ export const CharityRunSignup = () => {
                             Alle Teammitglieder erhalten die gleiche E-Mail-Adresse
                           </p>
                         </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={teamForm.control}
+                    name="timeslot_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Startzeit für das ganze Team *</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            className="space-y-2"
+                          >
+                            {loading ? (
+                              <div className="text-sm text-muted-foreground">Lädt verfügbare Startzeiten...</div>
+                            ) : timeslots.length > 0 ? (
+                              timeslots.map((timeslot) => (
+                                <div key={timeslot.id} className="flex items-center space-x-2 p-3 rounded-md border">
+                                  <RadioGroupItem 
+                                    value={timeslot.id} 
+                                    id={`team-timeslot-${timeslot.id}`}
+                                    disabled={timeslot.is_full}
+                                  />
+                                  <Label 
+                                    htmlFor={`team-timeslot-${timeslot.id}`}
+                                    className={`flex-1 ${timeslot.is_full ? 'text-muted-foreground' : ''}`}
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <span>
+                                        {timeslot.name} - {timeslot.time.substring(0, 5)} Uhr
+                                      </span>
+                                      <span className="text-sm text-muted-foreground">
+                                        {timeslot.current_participants}/{timeslot.max_participants}
+                                        {timeslot.is_full && " (Ausgebucht)"}
+                                      </span>
+                                    </div>
+                                  </Label>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-sm text-muted-foreground">Keine verfügbaren Startzeiten gefunden.</div>
+                            )}
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
