@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import heroImage from "@/assets/Titelbild_cropped.jpeg";
+import heroImage from "@/assets/titelbild.jpg";
 
 const HeroBanner = () => {
   const [scrollY, setScrollY] = useState(0);
