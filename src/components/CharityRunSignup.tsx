@@ -1239,7 +1239,7 @@ export const CharityRunSignup = () => {
                                             {timeslot.name} - {timeslot.time.substring(0, 5)} Uhr
                                           </span>
                                           <span className="text-sm text-muted-foreground">
-                                            {hasMostCapacity ? "Meiste Kapazität" : ""}
+                                            {hasMostCapacity ? "Mehr freie Kapazität" : ""}
                                             {timeslot.is_full && " (Ausgebucht)"}
                                           </span>
                                         </div>
@@ -1431,7 +1431,7 @@ export const CharityRunSignup = () => {
                                           {timeslot.name} - {timeslot.time.substring(0, 5)} Uhr
                                         </span>
                                         <span className="text-sm text-muted-foreground">
-                                          {hasMostCapacity ? "Meiste Kapazität" : ""}
+                                          {hasMostCapacity ? "Mehr freie Kapazität" : ""}
                                           {timeslot.is_full && " (Ausgebucht)"}
                                         </span>
                                       </div>
