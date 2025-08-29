@@ -3,19 +3,11 @@ import heroImage from "@/assets/titelbild.jpg";
 
 const HeroBanner = () => {
   const [scrollY, setScrollY] = useState(0);
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 768);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    
     window.addEventListener("scroll", handleScroll);
-    window.addEventListener("resize", handleResize);
-    
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
@@ -23,9 +15,10 @@ const HeroBanner = () => {
       <div 
         className="absolute inset-0 bg-cover bg-no-repeat"
         style={{
-          backgroundImage: `url(${heroImage})`,
-          backgroundPosition: 'center 5%',
+          backgroundImage: `url(${Titelbild_cropped.JPEG})`,
+          backgroundPosition: 'center 20%',
           transform: `translateY(${scrollY * 0.5}px)`,
+          backgroundAttachment: 'fixed',
           scale: '1.1'
         }}
       />
