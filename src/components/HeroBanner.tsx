@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import heroImage from "@/assets/titelbild.jpg";
+import heroImage from "@/assets/Titelbild_cropped.JPEG";
 
 const HeroBanner = () => {
   const [scrollY, setScrollY] = useState(0);
@@ -15,7 +15,7 @@ const HeroBanner = () => {
       <div 
         className="absolute inset-0 bg-cover bg-no-repeat"
         style={{
-          backgroundImage: `url(${Titelbild_cropped.JPEG})`,
+          backgroundImage: `url(${heroImage})`,
           backgroundPosition: 'center 20%',
           transform: `translateY(${scrollY * 0.5}px)`,
           backgroundAttachment: 'fixed',
