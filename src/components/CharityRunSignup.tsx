@@ -17,7 +17,7 @@ import { Users, User, Baby, Clock, Check, Plus, Minus, Phone, Info } from "lucid
 import { supabase } from "@/integrations/supabase/client";
 import { checkRateLimit, validateEmail, validateName, validatePhone } from "@/lib/security";
 
-// Validation schemas - Updated to use dynamic timeslot IDs
+// Validation schemas - Updated for automatic timeslot assignment
 const einzelanmeldungSchema = z.object({
   first_name: z.string().min(2, "Vorname muss mindestens 2 Zeichen haben"),
   last_name: z.string().min(2, "Nachname muss mindestens 2 Zeichen haben"),
@@ -25,9 +25,6 @@ const einzelanmeldungSchema = z.object({
   age: z.number().min(3, "Mindestalter 3 Jahre").max(110, "Maximalalter 110 Jahre"),
   gender: z.enum(["männlich", "weiblich", "divers"], {
     required_error: "Bitte wählen Sie ein Geschlecht",
-  }),
-  timeslot_id: z.string({
-    required_error: "Bitte wählen Sie eine Startzeit",
   }),
   join_existing_team: z.boolean().default(false),
   team_name: z.string().optional(),
@@ -57,9 +54,6 @@ const teamSchema = z.object({
   shared_email: z.string().optional(),
   use_shared_email: z.boolean().default(false),
   team_members: z.array(teamMemberSchema).min(1, "Mindestens ein Teammitglied erforderlich"),
-  timeslot_id: z.string({
-    required_error: "Bitte wählen Sie eine Startzeit",
-  }),
 }).refine((data) => {
   if (data.use_shared_email) {
     return data.shared_email && data.shared_email.length > 0 && z.string().email().safeParse(data.shared_email).success;
@@ -112,6 +106,7 @@ export const CharityRunSignup = () => {
     id: string;
     name: string;
     time: string;
+    type: string;
     max_participants: number;
     current_participants: number;
     is_full: boolean;
@@ -127,7 +122,6 @@ export const CharityRunSignup = () => {
       email: "",
       age: 18,
       gender: "männlich",
-      timeslot_id: "",
       join_existing_team: false,
       team_id: "",
     },
@@ -140,7 +134,6 @@ export const CharityRunSignup = () => {
       shared_email: "",
       use_shared_email: false,
       team_members: [{ first_name: "", last_name: "", email: "", age: 18, gender: "männlich" }],
-      timeslot_id: "",
     },
   });
 
@@ -192,6 +185,7 @@ export const CharityRunSignup = () => {
               id,
               name,
               time,
+              type,
               max_participants,
               participants!timeslot_id(count)
             `)
@@ -203,12 +197,18 @@ export const CharityRunSignup = () => {
               id: slot.id,
               name: slot.name,
               time: slot.time,
+              type: slot.type,
               max_participants: slot.max_participants,
               current_participants: slot.participants[0]?.count || 0,
               is_full: (slot.participants[0]?.count || 0) >= slot.max_participants
             }));
             setTimeslots(processedTimeslots);
           }
+          
+          // Ensure children timeslot exists
+          await supabase.rpc('ensure_children_timeslot_exists', { 
+            p_event_id: events[0].id 
+          });
         }
       } catch (error) {
         console.error('Error loading timeslots:', error);
@@ -315,7 +315,7 @@ export const CharityRunSignup = () => {
         console.log('Found team by ID:', { teamId, name: teams[0].name, readableId: teams[0].readable_team_id });
       }
 
-      // Prepare participant data
+      // Prepare participant data (timeslot will be auto-assigned by trigger)
       const participantData = {
         event_id: eventId,
         team_id: teamId,
@@ -324,7 +324,7 @@ export const CharityRunSignup = () => {
         email: data.email,
         age: data.age,
         gender: data.gender === 'männlich' ? 'male' : data.gender === 'weiblich' ? 'female' : 'other',
-        participant_type: 'adult'
+        participant_type: data.age < 10 ? 'child' : 'adult'
       };
 
       console.log('Inserting participant:', { ...participantData, email: '[REDACTED]' });
@@ -370,17 +370,20 @@ export const CharityRunSignup = () => {
           successDescription = `${data.first_name} ${data.last_name} wurde zum Team hinzugefügt.`;
         }
       } else {
-        const selectedTimeslot = timeslots.find(ts => ts.id === data.timeslot_id);
-        successDescription = `${data.first_name} ${data.last_name} wurde für ${selectedTimeslot?.name || 'ausgewählten Zeitslot'} angemeldet.`;
+        const timeslotType = data.age < 10 ? 'Kinderlauf' : 'Hauptlauf';
+        successDescription = `${data.first_name} ${data.last_name} wurde für den ${timeslotType} angemeldet.`;
       }
       
         // Send confirmation email
         try {
           console.log('Sending confirmation email for individual registration...');
           
-          // Get selected timeslot details for confirmation
-          const selectedTimeslot = timeslots.find(ts => ts.id === data.timeslot_id);
-          const timeslotTime = selectedTimeslot ? selectedTimeslot.time.substring(0, 5) : 'N/A';
+          // Get appropriate timeslot details for confirmation
+          const isChild = data.age < 10;
+          const appropriateTimeslot = timeslots.find(ts => 
+            isChild ? ts.type === 'children' : ts.type === 'normal'
+          );
+          const timeslotTime = appropriateTimeslot ? appropriateTimeslot.time.substring(0, 5) : 'N/A';
           
           const { error: emailError } = await supabase.functions.invoke('send-confirmation-email', {
             body: {
@@ -698,9 +701,12 @@ export const CharityRunSignup = () => {
         console.log('Sending confirmation emails for team registration...');
         
         const emailPromises = data.team_members.map(async (member) => {
-          // Get selected timeslot details for confirmation
-          const selectedTimeslot = timeslots.find(ts => ts.id === data.timeslot_id);
-          const timeslotTime = selectedTimeslot ? selectedTimeslot.time.substring(0, 5) : 'N/A';
+          // Get appropriate timeslot details for confirmation
+          const isAdult = member.age >= 16; // team members are adults
+          const appropriateTimeslot = timeslots.find(ts => 
+            isAdult ? ts.type === 'normal' : ts.type === 'children'
+          );
+          const timeslotTime = appropriateTimeslot ? appropriateTimeslot.time.substring(0, 5) : 'N/A';
           
           const { error: emailError } = await supabase.functions.invoke('send-confirmation-email', {
             body: {
@@ -722,8 +728,8 @@ export const CharityRunSignup = () => {
         
         // If shared email is used, send one email to the shared address
         if (data.use_shared_email && data.shared_email) {
-          const selectedTimeslot = timeslots.find(ts => ts.id === data.timeslot_id);
-          const timeslotTime = selectedTimeslot ? selectedTimeslot.time.substring(0, 5) : 'N/A';
+          const appropriateTimeslot = timeslots.find(ts => ts.type === 'normal'); // team members are adults
+          const timeslotTime = appropriateTimeslot ? appropriateTimeslot.time.substring(0, 5) : 'N/A';
           
           emailPromises.push(
             supabase.functions.invoke('send-confirmation-email', {
@@ -1175,67 +1181,14 @@ export const CharityRunSignup = () => {
                     />
                   </div>
 
-                  {!watchJoinTeam && (
-                  <FormField
-                    control={einzelanmeldungForm.control}
-                    name="timeslot_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          Wähle deine Startzeit *
-                        </FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="flex flex-col space-y-3"
-                          >
-                            {loading ? (
-                              <div className="p-4 text-center text-muted-foreground">
-                                Lade Zeitslots...
-                              </div>
-                            ) : timeslots.filter(slot => slot.name !== 'Kinderlauf').map((slot) => (
-                              <div 
-                                key={slot.id}
-                                className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors ${
-                                  slot.is_full 
-                                    ? 'border-muted bg-muted/20 opacity-50 cursor-not-allowed' 
-                                    : 'border-input hover:bg-accent/50 cursor-pointer'
-                                }`}
-                              >
-                                <RadioGroupItem 
-                                  value={slot.id} 
-                                  id={`time-${slot.id}`} 
-                                  disabled={slot.is_full}
-                                />
-                                <Label 
-                                  htmlFor={`time-${slot.id}`} 
-                                  className={`text-sm sm:text-base flex-1 ${
-                                    slot.is_full ? 'cursor-not-allowed' : 'cursor-pointer'
-                                  }`}
-                                >
-                                  {slot.time.substring(0, 5)} Uhr - {slot.name}
-                                  {slot.is_full && (
-                                    <span className="ml-2 text-xs text-muted-foreground">
-                                      (Ausgebucht: {slot.current_participants}/{slot.max_participants})
-                                    </span>
-                                  )}
-                                  {!slot.is_full && (
-                                    <span className="ml-2 text-xs text-muted-foreground">
-                                      ({slot.current_participants}/{slot.max_participants} Plätze)
-                                    </span>
-                                  )}
-                                </Label>
-                              </div>
-                            ))}
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                   />
-                  )}
+                  <div className="p-4 bg-accent/10 border border-accent/20 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      <Clock className="inline h-4 w-4 mr-2" />
+                      Zeitslots werden automatisch basierend auf dem Alter zugewiesen:
+                      <br />• Unter 10 Jahre: Kinderlauf (09:00 Uhr)
+                      <br />• Ab 16 Jahre: Hauptlauf (automatische Verteilung)
+                    </p>
+                  </div>
 
                   <FormField
                     control={einzelanmeldungForm.control}
@@ -1499,67 +1452,14 @@ export const CharityRunSignup = () => {
                     </Button>
                   </div>
 
-                   <FormField
-                     control={teamForm.control}
-                     name="timeslot_id"
-                     render={({ field }) => (
-                       <FormItem>
-                         <FormLabel className="flex items-center gap-2">
-                           <Clock className="h-4 w-4" />
-                           Wähle die Startzeit für das Team *
-                         </FormLabel>
-                         <FormControl>
-                           <RadioGroup
-                             onValueChange={field.onChange}
-                             value={field.value}
-                             className="flex flex-col space-y-3"
-                           >
-                             {loading ? (
-                               <div className="p-4 text-center text-muted-foreground">
-                                 Lade Zeitslots...
-                               </div>
-                             ) : timeslots.filter(slot => slot.name !== 'Kinderlauf').map((slot) => (
-                               <div 
-                                 key={slot.id}
-                                 className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors ${
-                                   slot.is_full 
-                                     ? 'border-muted bg-muted/20 opacity-50 cursor-not-allowed' 
-                                     : 'border-input hover:bg-accent/50 cursor-pointer'
-                                 }`}
-                               >
-                                 <RadioGroupItem 
-                                   value={slot.id} 
-                                   id={`team-time-${slot.id}`} 
-                                   disabled={slot.is_full}
-                                 />
-                                 <Label 
-                                   htmlFor={`team-time-${slot.id}`} 
-                                   className={`text-sm sm:text-base flex-1 ${
-                                     slot.is_full ? 'cursor-not-allowed' : 'cursor-pointer'
-                                   }`}
-                                 >
-                                   {slot.time.substring(0, 5)} Uhr - {slot.name}
-                                   {slot.is_full && (
-                                     <span className="ml-2 text-xs text-muted-foreground">
-                                       (Ausgebucht: {slot.current_participants}/{slot.max_participants})
-                                     </span>
-                                   )}
-                                   {!slot.is_full && (
-                                     <span className="ml-2 text-xs text-muted-foreground">
-                                       ({slot.current_participants}/{slot.max_participants} Plätze)
-                                     </span>
-                                   )}
-                                 </Label>
-                               </div>
-                             ))}
-                           </RadioGroup>
-                         </FormControl>
-                         <FormMessage />
-                       </FormItem>
-                     )}
-                    />
+                  <div className="p-4 bg-accent/10 border border-accent/20 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      <Clock className="inline h-4 w-4 mr-2" />
+                      Zeitslots werden automatisch zugewiesen: Teammitglieder (ab 16 Jahre) starten beim Hauptlauf.
+                    </p>
+                  </div>
 
-                   <Button 
+                   <Button
                      type="submit" 
                      variant="hero" 
                      size="lg" 

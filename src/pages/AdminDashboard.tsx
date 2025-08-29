@@ -17,6 +17,7 @@ interface DashboardStats {
     id: string;
     name: string;
     time: string;
+    type: string;
     current: number;
     max: number;
     percentage: number;
@@ -97,6 +98,7 @@ const AdminDashboard = () => {
             id: slot.id,
             name: slot.name,
             time: slot.time,
+            type: slot.type,
             current,
             max,
             percentage: (current / max) * 100
@@ -267,7 +269,9 @@ const AdminDashboard = () => {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="font-medium">{slot.name}</p>
-                          <p className="text-sm text-muted-foreground">{slot.time}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {slot.time} - {slot.type === 'children' ? 'Kinderlauf' : 'Hauptlauf'}
+                          </p>
                         </div>
                         <div className="text-right">
                           <p className="font-semibold">{slot.current}/{slot.max}</p>

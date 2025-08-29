@@ -41,6 +41,7 @@ interface Timeslot {
   id: string;
   name: string;
   time: string;
+  type: string;
   max_participants: number;
   event_id: string;
   created_at: string;
@@ -377,6 +378,7 @@ const AdminData = () => {
             <tr className="bg-muted">
               <th className="border border-border p-2 text-left">Name</th>
               <th className="border border-border p-2 text-left">Zeit</th>
+              <th className="border border-border p-2 text-left">Typ</th>
               <th className="border border-border p-2 text-left">Max Teilnehmer</th>
               <th className="border border-border p-2 text-left">Event</th>
               <th className="border border-border p-2 text-left">Aktionen</th>
@@ -397,6 +399,9 @@ const AdminData = () => {
                   <>
                     <td className="border border-border p-2">{timeslot.name}</td>
                     <td className="border border-border p-2">{timeslot.time}</td>
+                    <td className="border border-border p-2">
+                      {timeslot.type === 'children' ? 'Kinderlauf' : 'Hauptlauf'}
+                    </td>
                     <td className="border border-border p-2">{timeslot.max_participants}</td>
                     <td className="border border-border p-2">
                       {events.find(e => e.id === timeslot.event_id)?.name || '-'}
@@ -622,6 +627,16 @@ const TimeslotEditRow = ({ timeslot, events, onSave, onCancel, onChange }: any) 
         onChange={(e) => onChange({...timeslot, time: e.target.value})}
         className="text-sm"
       />
+    </td>
+    <td className="border border-border p-2">
+      <select
+        value={timeslot.type || 'normal'}
+        onChange={(e) => onChange({...timeslot, type: e.target.value})}
+        className="w-full p-1 border rounded text-sm bg-background"
+      >
+        <option value="normal">Hauptlauf</option>
+        <option value="children">Kinderlauf</option>
+      </select>
     </td>
     <td className="border border-border p-2">
       <Input
