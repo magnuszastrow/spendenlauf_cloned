@@ -36,6 +36,7 @@ const einzelanmeldungSchema = z.object({
   privacy_consent: z.boolean().refine((val) => val === true, {
     message: "Sie müssen der Datenschutzerklärung zustimmen",
   }),
+  future_event_consent: z.boolean().optional(),
 }).refine((data) => {
   if (data.join_existing_team) {
     return data.team_id && data.team_id.length >= 1;
@@ -77,6 +78,7 @@ const teamSchema = z.object({
   privacy_consent: z.boolean().refine((val) => val === true, {
     message: "Sie müssen der Datenschutzerklärung zustimmen",
   }),
+  future_event_consent: z.boolean().optional(),
 }).refine((data) => {
   if (data.use_shared_email) {
     return data.shared_email && data.shared_email.length > 0 && z.string().email().safeParse(data.shared_email).success;
@@ -110,6 +112,7 @@ const kinderlaufSchema = z.object({
   privacy_consent: z.boolean().refine((val) => val === true, {
     message: "Sie müssen der Datenschutzerklärung zustimmen",
   }),
+  future_event_consent: z.boolean().optional(),
 }).refine((data) => {
   if (data.children.length > 1 && !data.team_name && !data.join_existing_team) {
     return false;
@@ -156,6 +159,7 @@ export const CharityRunSignup = () => {
       team_id: "",
       liability_waiver: false,
       privacy_consent: false,
+      future_event_consent: false,
     },
   });
 
@@ -169,6 +173,7 @@ export const CharityRunSignup = () => {
       team_members: [{ first_name: "", last_name: "", email: "", age: 18, gender: "männlich" }],
       liability_waiver: false,
       privacy_consent: false,
+      future_event_consent: false,
     },
   });
 
@@ -184,6 +189,7 @@ export const CharityRunSignup = () => {
       existing_team_id: "",
       liability_waiver: false,
       privacy_consent: false,
+      future_event_consent: false,
     },
   });
 
@@ -363,6 +369,7 @@ export const CharityRunSignup = () => {
         age: data.age,
         gender: data.gender === 'männlich' ? 'male' : data.gender === 'weiblich' ? 'female' : 'other',
         participant_type: data.age < 10 ? 'child' : 'adult',
+        future_event_consent: data.future_event_consent || false,
         ...(data.age >= 10 && data.timeslot_id ? { timeslot_id: data.timeslot_id } : {})
       };
 
@@ -657,7 +664,8 @@ export const CharityRunSignup = () => {
             email: member.email,
             age: member.age,
             gender: member.gender === 'männlich' ? 'male' : member.gender === 'weiblich' ? 'female' : 'other',
-            participant_type: 'adult'
+            participant_type: 'adult',
+            future_event_consent: data.future_event_consent || false
           });
         }
       }
@@ -979,7 +987,8 @@ export const CharityRunSignup = () => {
           last_name: child.last_name,
           age: child.age,
           gender: child.gender === 'männlich' ? 'male' : child.gender === 'weiblich' ? 'female' : 'other',
-          participant_type: 'child'
+          participant_type: 'child',
+          future_event_consent: data.future_event_consent || false
         };
       });
 
@@ -1387,8 +1396,28 @@ export const CharityRunSignup = () => {
                             <FormMessage />
                           </FormItem>
                         )}
-                      />
-                    </div>
+                       />
+                       <FormField
+                         control={einzelanmeldungForm.control}
+                         name="future_event_consent"
+                         render={({ field }) => (
+                           <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                             <FormControl>
+                               <Checkbox
+                                 checked={field.value}
+                                 onCheckedChange={field.onChange}
+                               />
+                             </FormControl>
+                             <div className="space-y-1 leading-none">
+                               <FormLabel className="text-sm font-normal">
+                                 Ich willige ein, dass meine Daten für zukünftige Veranstaltungen gespeichert und ich über diese informiert werden darf. Diese Einwilligung ist freiwillig und kann jederzeit widerrufen werden.
+                               </FormLabel>
+                             </div>
+                             <FormMessage />
+                           </FormItem>
+                         )}
+                       />
+                     </div>
 
                      <Button 
                       type="submit" 
@@ -1715,8 +1744,28 @@ export const CharityRunSignup = () => {
                             <FormMessage />
                           </FormItem>
                         )}
-                      />
-                    </div>
+                       />
+                       <FormField
+                         control={teamForm.control}
+                         name="future_event_consent"
+                         render={({ field }) => (
+                           <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                             <FormControl>
+                               <Checkbox
+                                 checked={field.value}
+                                 onCheckedChange={field.onChange}
+                               />
+                             </FormControl>
+                             <div className="space-y-1 leading-none">
+                               <FormLabel className="text-sm font-normal">
+                                 Ich willige ein, dass meine Daten für zukünftige Veranstaltungen gespeichert und ich über diese informiert werden darf. Diese Einwilligung ist freiwillig und kann jederzeit widerrufen werden.
+                               </FormLabel>
+                             </div>
+                             <FormMessage />
+                           </FormItem>
+                         )}
+                       />
+                     </div>
 
                     <Button
                      type="submit" 
@@ -2035,8 +2084,28 @@ export const CharityRunSignup = () => {
                             <FormMessage />
                           </FormItem>
                         )}
-                      />
-                    </div>
+                       />
+                       <FormField
+                         control={kinderlaufForm.control}
+                         name="future_event_consent"
+                         render={({ field }) => (
+                           <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                             <FormControl>
+                               <Checkbox
+                                 checked={field.value}
+                                 onCheckedChange={field.onChange}
+                               />
+                             </FormControl>
+                             <div className="space-y-1 leading-none">
+                               <FormLabel className="text-sm font-normal">
+                                 Ich willige ein, dass meine Daten für zukünftige Veranstaltungen gespeichert und ich über diese informiert werden darf. Diese Einwilligung ist freiwillig und kann jederzeit widerrufen werden.
+                               </FormLabel>
+                             </div>
+                             <FormMessage />
+                           </FormItem>
+                         )}
+                       />
+                     </div>
 
                     <Button 
                      type="submit" 

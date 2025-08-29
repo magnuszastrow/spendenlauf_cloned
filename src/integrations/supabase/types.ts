@@ -87,6 +87,7 @@ export type Database = {
           email: string | null
           event_id: string
           first_name: string
+          future_event_consent: boolean | null
           gender: string | null
           guardian_id: string | null
           id: string
@@ -103,6 +104,7 @@ export type Database = {
           email?: string | null
           event_id: string
           first_name: string
+          future_event_consent?: boolean | null
           gender?: string | null
           guardian_id?: string | null
           id?: string
@@ -119,6 +121,7 @@ export type Database = {
           email?: string | null
           event_id?: string
           first_name?: string
+          future_event_consent?: boolean | null
           gender?: string | null
           guardian_id?: string | null
           id?: string

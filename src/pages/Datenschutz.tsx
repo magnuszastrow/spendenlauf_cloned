@@ -96,7 +96,35 @@ const Datenschutz = () => {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3 text-foreground">5. Ihre Rechte</h2>
+            <h2 className="text-xl font-semibold mb-3 text-foreground">5. Speicherung für zukünftige Veranstaltungen</h2>
+            <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+              Bei der Anmeldung haben Sie die Möglichkeit, der Speicherung Ihrer Daten für zukünftige Veranstaltungen zuzustimmen. 
+              Diese Einwilligung ist vollständig freiwillig und hat keinen Einfluss auf Ihre Teilnahme an der aktuellen Veranstaltung.
+            </p>
+            
+            <h3 className="text-lg font-medium mb-2 text-foreground">Zweck der erweiterten Datenspeicherung</h3>
+            <ul className="list-disc list-inside text-muted-foreground text-sm space-y-1 mb-4 ml-4">
+              <li>Information über kommende Charity-Läufe und ähnliche Veranstaltungen</li>
+              <li>Vereinfachte Anmeldung bei zukünftigen Events (Ihre Daten sind bereits hinterlegt)</li>
+              <li>Aufbau einer Community von regelmäßigen Teilnehmern</li>
+            </ul>
+            
+            <h3 className="text-lg font-medium mb-2 text-foreground">Speicherdauer bei Einwilligung</h3>
+            <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+              Bei erteilter Einwilligung werden Ihre Daten bis zu 3 Jahre gespeichert oder bis zum Widerruf Ihrer Einwilligung. 
+              Sie erhalten maximal 2-3 Informationen pro Jahr über neue Veranstaltungen. Jede E-Mail enthält einen Abmeldelink.
+            </p>
+            
+            <h3 className="text-lg font-medium mb-2 text-foreground">Widerruf der Einwilligung</h3>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Sie können diese Einwilligung jederzeit widerrufen. Bei Widerruf werden Ihre Daten nur noch für die 
+              aktuelle Veranstaltung (bis 6 Monate nach Ende) gespeichert. Kontaktieren Sie uns einfach über die 
+              oben genannten Kontaktdaten.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3 text-foreground">6. Ihre Rechte</h2>
             <p className="text-muted-foreground text-sm leading-relaxed mb-4">
               Sie haben folgende Rechte bezüglich Ihrer personenbezogenen Daten:
             </p>
@@ -115,7 +143,7 @@ const Datenschutz = () => {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3 text-foreground">6. Beschwerderecht</h2>
+            <h2 className="text-xl font-semibold mb-3 text-foreground">7. Beschwerderecht</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
               Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde über unsere Verarbeitung 
               personenbezogener Daten zu beschweren. Zuständig ist die Datenschutzaufsichtsbehörde des 
@@ -124,7 +152,7 @@ const Datenschutz = () => {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3 text-foreground">7. Änderungen dieser Datenschutzerklärung</h2>
+            <h2 className="text-xl font-semibold mb-3 text-foreground">8. Änderungen dieser Datenschutzerklärung</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
               Wir behalten uns vor, diese Datenschutzerklärung anzupassen, damit sie stets den aktuellen 
               rechtlichen Anforderungen entspricht oder um Änderungen unserer Leistungen in der 
