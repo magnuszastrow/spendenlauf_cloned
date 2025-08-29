@@ -9,11 +9,11 @@ const Navbar = () => {
   const { user, isAdmin, signOut } = useAuth();
 
   const navigationItems = [
+    { href: "/anmeldung", label: "Anmeldung" },
     { href: "/info", label: "Info" },
     { href: "/sponsoren", label: "Sponsoren" },
     { href: "/kontakt", label: "Kontakt" },
     { href: "/faqs", label: "FAQs" },
-    { href: "/anmeldung", label: "Anmeldung" },
   ];
 
   const isActive = (path: string) => location.pathname === path;
