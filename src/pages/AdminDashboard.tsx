@@ -6,7 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Navigate } from "react-router-dom";
-import { Users, Calendar, Clock, TrendingUp } from "lucide-react";
+import { Users, Calendar, Clock, TrendingUp, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 interface DashboardStats {
   totalParticipants: number;
@@ -42,35 +49,60 @@ const AdminDashboard = () => {
     recentParticipants: []
   });
   const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<Array<{
+    id: string;
+    name: string;
+    year: number;
+    date: string | null;
+  }>>([]);
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
 
   console.log('AdminDashboard render:', { user: !!user, isAdmin, authLoading });
 
-  const loadDashboardData = async () => {
+  const loadEvents = async () => {
+    try {
+      console.log('Loading events...');
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('id, name, year, date')
+        .order('year', { ascending: false });
+
+      console.log('Events loaded:', eventsData, eventsError);
+      if (eventsError) throw eventsError;
+
+      setEvents(eventsData || []);
+      
+      // Auto-select first event if none selected
+      if (eventsData && eventsData.length > 0 && !selectedEvent) {
+        setSelectedEvent(eventsData[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading events:', error);
+    }
+  };
+
+  const loadDashboardData = async (eventId: string) => {
+    if (!eventId) return;
+    
     setLoading(true);
     try {
-      console.log('Loading dashboard data...');
+      console.log('Loading dashboard data for event:', eventId);
       
-      // Load participants
+      // Load participants for selected event
       const { data: participants, error: participantsError } = await supabase
         .from('participants')
         .select('*')
+        .eq('event_id', eventId)
         .order('created_at', { ascending: false });
 
       console.log('Participants loaded:', participants, participantsError);
       if (participantsError) throw participantsError;
 
-      // Load events
-      const { data: events, error: eventsError } = await supabase
-        .from('events')
-        .select('*');
-
-      console.log('Events loaded:', events, eventsError);
-      if (eventsError) throw eventsError;
-
-      // Load timeslots with participant counts
+      // Load timeslots for selected event
       const { data: timeslots, error: timeslotsError } = await supabase
         .from('timeslots')
-        .select('*');
+        .select('*')
+        .eq('event_id', eventId);
 
       console.log('Timeslots loaded:', timeslots, timeslotsError);
       if (timeslotsError) throw timeslotsError;
@@ -110,7 +142,7 @@ const AdminDashboard = () => {
 
       setStats({
         totalParticipants: participants?.length || 0,
-        totalEvents: events?.length || 0,
+        totalEvents: events.length,
         totalTimeslots: timeslots?.length || 0,
         participantsByType,
         timeslotFillRates,
@@ -125,12 +157,19 @@ const AdminDashboard = () => {
     }
   };
 
-  // Load dashboard data - must be called before any conditional returns
+  // Load events on mount
   useEffect(() => {
     if (user && isAdmin && !authLoading) {
-      loadDashboardData();
+      loadEvents();
     }
   }, [user, isAdmin, authLoading]);
+
+  // Load dashboard data when selected event changes
+  useEffect(() => {
+    if (selectedEvent && user && isAdmin && !authLoading) {
+      loadDashboardData(selectedEvent);
+    }
+  }, [selectedEvent, user, isAdmin, authLoading]);
 
   // Show loading while auth is loading
   if (authLoading) {
@@ -174,12 +213,45 @@ const AdminDashboard = () => {
     <Layout>
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="space-y-8">
-          {/* Header */}
-          <div>
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground">
-              Überblick über alle Spendenlauf-Daten
-            </p>
+          {/* Header with Event Selection */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+              <p className="text-muted-foreground">
+                Überblick über alle Spendenlauf-Daten
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Event:</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="min-w-[200px] justify-between">
+                    {selectedEvent ? 
+                      events.find(e => e.id === selectedEvent)?.name || 'Event auswählen' : 
+                      'Event auswählen'
+                    }
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[200px]">
+                  {events.map((event) => (
+                    <DropdownMenuItem
+                      key={event.id}
+                      onClick={() => setSelectedEvent(event.id)}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">{event.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {event.year} {event.date && `• ${new Date(event.date).toLocaleDateString('de-DE')}`}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           {/* Stats Overview */}
