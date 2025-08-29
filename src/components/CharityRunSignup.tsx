@@ -1213,32 +1213,40 @@ export const CharityRunSignup = () => {
                               value={field.value}
                               className="space-y-2"
                             >
-                              {loading ? (
+                               {loading ? (
                                 <div className="text-sm text-muted-foreground">Lädt verfügbare Startzeiten...</div>
                               ) : timeslots.length > 0 ? (
-                                timeslots.map((timeslot) => (
-                                  <div key={timeslot.id} className="flex items-center space-x-2 p-3 rounded-md border">
-                                    <RadioGroupItem 
-                                      value={timeslot.id} 
-                                      id={`timeslot-${timeslot.id}`}
-                                      disabled={timeslot.is_full}
-                                    />
-                                    <Label 
-                                      htmlFor={`timeslot-${timeslot.id}`}
-                                      className={`flex-1 ${timeslot.is_full ? 'text-muted-foreground' : ''}`}
-                                    >
-                                      <div className="flex justify-between items-center">
-                                        <span>
-                                          {timeslot.name} - {timeslot.time.substring(0, 5)} Uhr
-                                        </span>
-                                        <span className="text-sm text-muted-foreground">
-                                          {timeslot.current_participants}/{timeslot.max_participants}
-                                          {timeslot.is_full && " (Ausgebucht)"}
-                                        </span>
-                                      </div>
-                                    </Label>
-                                  </div>
-                                ))
+                                timeslots.map((timeslot) => {
+                                  // Find timeslot with most capacity
+                                  const mostCapacitySlot = timeslots.reduce((max, current) => 
+                                    (current.max_participants - current.current_participants) > (max.max_participants - max.current_participants) ? current : max
+                                  );
+                                  const hasMostCapacity = mostCapacitySlot.id === timeslot.id;
+                                  
+                                  return (
+                                    <div key={timeslot.id} className="flex items-center space-x-2 p-3 rounded-md border">
+                                      <RadioGroupItem 
+                                        value={timeslot.id} 
+                                        id={`timeslot-${timeslot.id}`}
+                                        disabled={timeslot.is_full}
+                                      />
+                                      <Label 
+                                        htmlFor={`timeslot-${timeslot.id}`}
+                                        className={`flex-1 ${timeslot.is_full ? 'text-muted-foreground' : ''}`}
+                                      >
+                                        <div className="flex justify-between items-center">
+                                          <span>
+                                            {timeslot.name} - {timeslot.time.substring(0, 5)} Uhr
+                                          </span>
+                                          <span className="text-sm text-muted-foreground">
+                                            {hasMostCapacity ? "Meiste Kapazität" : ""}
+                                            {timeslot.is_full && " (Ausgebucht)"}
+                                          </span>
+                                        </div>
+                                      </Label>
+                                    </div>
+                                  );
+                                })
                               ) : (
                                 <div className="text-sm text-muted-foreground">Keine verfügbaren Startzeiten gefunden.</div>
                               )}
@@ -1400,29 +1408,37 @@ export const CharityRunSignup = () => {
                             {loading ? (
                               <div className="text-sm text-muted-foreground">Lädt verfügbare Startzeiten...</div>
                             ) : timeslots.length > 0 ? (
-                              timeslots.map((timeslot) => (
-                                <div key={timeslot.id} className="flex items-center space-x-2 p-3 rounded-md border">
-                                  <RadioGroupItem 
-                                    value={timeslot.id} 
-                                    id={`team-timeslot-${timeslot.id}`}
-                                    disabled={timeslot.is_full}
-                                  />
-                                  <Label 
-                                    htmlFor={`team-timeslot-${timeslot.id}`}
-                                    className={`flex-1 ${timeslot.is_full ? 'text-muted-foreground' : ''}`}
-                                  >
-                                    <div className="flex justify-between items-center">
-                                      <span>
-                                        {timeslot.name} - {timeslot.time.substring(0, 5)} Uhr
-                                      </span>
-                                      <span className="text-sm text-muted-foreground">
-                                        {timeslot.current_participants}/{timeslot.max_participants}
-                                        {timeslot.is_full && " (Ausgebucht)"}
-                                      </span>
-                                    </div>
-                                  </Label>
-                                </div>
-                              ))
+                              timeslots.map((timeslot) => {
+                                // Find timeslot with most capacity
+                                const mostCapacitySlot = timeslots.reduce((max, current) => 
+                                  (current.max_participants - current.current_participants) > (max.max_participants - max.current_participants) ? current : max
+                                );
+                                const hasMostCapacity = mostCapacitySlot.id === timeslot.id;
+                                
+                                return (
+                                  <div key={timeslot.id} className="flex items-center space-x-2 p-3 rounded-md border">
+                                    <RadioGroupItem 
+                                      value={timeslot.id} 
+                                      id={`team-timeslot-${timeslot.id}`}
+                                      disabled={timeslot.is_full}
+                                    />
+                                    <Label 
+                                      htmlFor={`team-timeslot-${timeslot.id}`}
+                                      className={`flex-1 ${timeslot.is_full ? 'text-muted-foreground' : ''}`}
+                                    >
+                                      <div className="flex justify-between items-center">
+                                        <span>
+                                          {timeslot.name} - {timeslot.time.substring(0, 5)} Uhr
+                                        </span>
+                                        <span className="text-sm text-muted-foreground">
+                                          {hasMostCapacity ? "Meiste Kapazität" : ""}
+                                          {timeslot.is_full && " (Ausgebucht)"}
+                                        </span>
+                                      </div>
+                                    </Label>
+                                  </div>
+                                );
+                              })
                             ) : (
                               <div className="text-sm text-muted-foreground">Keine verfügbaren Startzeiten gefunden.</div>
                             )}
