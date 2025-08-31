@@ -12,11 +12,6 @@ import { de } from "date-fns/locale";
 const Info = () => {
   const navigate = useNavigate();
 
-  const scrollToSection = (event: React.MouseEvent<HTMLButtonElement>) => {
-    const section = event.currentTarget.closest("section");
-    section?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
-
   // Fetch active event with simplified typing
   const { data: activeEvent, isLoading: eventLoading } = useQuery({
     queryKey: ["active-event"],
@@ -113,13 +108,9 @@ const Info = () => {
             {/* Wann & Wo Card */}
             <Card className="flex flex-col h-full">
               <CardContent className="p-6 flex flex-col flex-1">
-                <Button
-                  variant="outline"
-                  className="w-full mb-4 justify-start font-semibold"
-                  onClick={scrollToSection}
-                >
+                <h3 className="text-lg font-semibold mb-4">
                   Wann &amp; Wo?
-                </Button>
+                </h3>
                 
                 <div className="space-y-3 text-sm">
                   <p><strong>Datum:</strong> {isLoading ? "Lade..." : formatDate(activeEvent?.date)}</p>
@@ -172,13 +163,9 @@ const Info = () => {
             {/* Mitlaufen Card */}
             <Card className="flex flex-col h-full">
               <CardContent className="p-6 flex flex-col flex-1">
-                <Button
-                  variant="outline"
-                  className="w-full mb-4 justify-start font-semibold"
-                  onClick={scrollToSection}
-                >
+                <h3 className="text-lg font-semibold mb-4">
                   Mitlaufen
-                </Button>
+                </h3>
                 
                 <div className="space-y-3 text-sm text-muted-foreground flex-1">
                   <p><strong className="text-foreground">Online anmelden</strong> – Einzeln oder als Team, ihr erhaltet eine Bestätigungsmail.</p>
@@ -202,13 +189,9 @@ const Info = () => {
             {/* Zuschauen Card */}
             <Card className="flex flex-col h-full">
               <CardContent className="p-6 flex flex-col flex-1">
-                <Button
-                  variant="outline"
-                  className="w-full mb-4 justify-start font-semibold"
-                  onClick={scrollToSection}
-                >
+                <h3 className="text-lg font-semibold mb-4">
                   Zuschauen
-                </Button>
+                </h3>
                 
                 <div className="space-y-3 text-sm text-muted-foreground">
                   <p><strong className="text-foreground">Zuschauen</strong> – Wer nicht mitlaufen möchte, kann die Veranstaltung auch als Zuschauer unterstützen und Salziges (Bratwurst, Pommes) oder Süßes (Kuchen, Popcorn, Zuckerwatte) genießen.</p>
@@ -220,13 +203,9 @@ const Info = () => {
             {/* Wofür Card */}
             <Card className="flex flex-col h-full">
               <CardContent className="p-6 flex flex-col flex-1">
-                <Button
-                  variant="outline"
-                  className="w-full mb-4 justify-start font-semibold"
-                  onClick={scrollToSection}
-                >
+                <h3 className="text-lg font-semibold mb-4">
                   Wofür?
-                </Button>
+                </h3>
                 
                 <div className="text-sm text-muted-foreground">
                   <a 
