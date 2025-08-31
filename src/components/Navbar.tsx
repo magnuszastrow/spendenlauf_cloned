@@ -10,11 +10,10 @@ const Navbar = () => {
 
   const navigationItems = [
     { href: "/anmeldung", label: "Anmeldung" },
-    { href: "/info", label: "Info" },
+    { href: "/", label: "Info" },
     { href: "/sponsoren", label: "Sponsoren" },
     { href: "/kontakt", label: "Kontakt" },
     { href: "/faqs", label: "FAQs" },
-    ...(user && isAdmin ? [{ href: "/admin", label: "Export" }] : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;
