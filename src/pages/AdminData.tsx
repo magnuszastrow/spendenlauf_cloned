@@ -8,8 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Trash2, Edit2, Plus, Save, X } from "lucide-react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Trash2, Edit2, Plus, Save, X, ChevronDown } from "lucide-react";
 import { Navigate } from "react-router-dom";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 interface Participant {
   id: string;
@@ -47,15 +54,30 @@ interface Timeslot {
   created_at: string;
 }
 
+interface ConfirmDialogState {
+  open: boolean;
+  title: string;
+  description: string;
+  onConfirm: () => void;
+  variant?: "default" | "destructive";
+}
+
 const AdminData = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("participants");
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
+    open: false,
+    title: "",
+    description: "",
+    onConfirm: () => {},
+  });
 
   console.log('AdminData render:', { user: !!user, isAdmin, authLoading });
 
@@ -79,31 +101,60 @@ const AdminData = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const loadEvents = async () => {
+    try {
+      console.log('Loading events...');
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('*')
+        .order('year', { ascending: false });
 
-  const loadData = async () => {
+      console.log('Events loaded:', eventsData, eventsError);
+      if (eventsError) throw eventsError;
+
+      setEvents(eventsData || []);
+      
+      // Auto-select first event if none selected
+      if (eventsData && eventsData.length > 0 && !selectedEvent) {
+        setSelectedEvent(eventsData[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading events:', error);
+      toast({
+        title: "Fehler",
+        description: "Events konnten nicht geladen werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadEventData = async (eventId: string) => {
+    if (!eventId) return;
+    
     setLoading(true);
     try {
-      const [participantsRes, eventsRes, timeslotsRes] = await Promise.all([
-        supabase.from('participants').select('*').order('created_at', { ascending: false }),
-        supabase.from('events').select('*').order('created_at', { ascending: false }),
-        supabase.from('timeslots').select('*').order('created_at', { ascending: false })
+      console.log('Loading event data for:', eventId);
+      
+      const [participantsRes, timeslotsRes] = await Promise.all([
+        supabase.from('participants').select('*').eq('event_id', eventId).order('created_at', { ascending: false }),
+        supabase.from('timeslots').select('*').eq('event_id', eventId).order('created_at', { ascending: false })
       ]);
 
       if (participantsRes.error) throw participantsRes.error;
-      if (eventsRes.error) throw eventsRes.error;
       if (timeslotsRes.error) throw timeslotsRes.error;
 
       setParticipants(participantsRes.data || []);
-      setEvents(eventsRes.data || []);
       setTimeslots(timeslotsRes.data || []);
+      
+      console.log('Event data loaded:', { 
+        participants: participantsRes.data?.length, 
+        timeslots: timeslotsRes.data?.length 
+      });
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Error loading event data:', error);
       toast({
         title: "Fehler",
-        description: "Daten konnten nicht geladen werden.",
+        description: "Event-Daten konnten nicht geladen werden.",
         variant: "destructive",
       });
     } finally {
@@ -111,8 +162,44 @@ const AdminData = () => {
     }
   };
 
-  const handleSave = async (table: 'participants' | 'events' | 'timeslots', data: any) => {
+  // Load events on mount
+  useEffect(() => {
+    if (user && isAdmin && !authLoading) {
+      loadEvents();
+    }
+  }, [user, isAdmin, authLoading]);
+
+  // Load event data when selected event changes
+  useEffect(() => {
+    if (selectedEvent && user && isAdmin && !authLoading) {
+      loadEventData(selectedEvent);
+    }
+  }, [selectedEvent, user, isAdmin, authLoading]);
+
+  const handleSave = async (table: 'participants' | 'timeslots', data: any) => {
+    const itemType = table === 'participants' ? 'Teilnehmer' : 'Zeitslot';
+    const isUpdate = data.id && !isCreating;
+    
+    const confirmTitle = isUpdate ? `${itemType} bearbeiten` : `${itemType} erstellen`;
+    const confirmDescription = isUpdate 
+      ? `Möchten Sie die Änderungen an diesem ${itemType.toLowerCase()} speichern?\n\n${getItemDescription(table, data)}`
+      : `Möchten Sie diesen ${itemType.toLowerCase()} erstellen?\n\n${getItemDescription(table, data)}`;
+
+    setConfirmDialog({
+      open: true,
+      title: confirmTitle,
+      description: confirmDescription,
+      onConfirm: () => performSave(table, data),
+    });
+  };
+
+  const performSave = async (table: 'participants' | 'timeslots', data: any) => {
     try {
+      // Ensure event_id is set to selected event for new items
+      if (!data.event_id && selectedEvent) {
+        data.event_id = selectedEvent;
+      }
+
       if (data.id && !isCreating) {
         // Update existing record
         const { error } = await supabase
@@ -135,7 +222,10 @@ const AdminData = () => {
       
       setEditingItem(null);
       setIsCreating(false);
-      loadData();
+      setConfirmDialog({ ...confirmDialog, open: false });
+      if (selectedEvent) {
+        loadEventData(selectedEvent);
+      }
     } catch (error) {
       console.error('Error saving data:', error);
       toast({
@@ -146,9 +236,19 @@ const AdminData = () => {
     }
   };
 
-  const handleDelete = async (table: 'participants' | 'events' | 'timeslots', id: string) => {
-    if (!confirm('Sind Sie sicher, dass Sie diesen Eintrag löschen möchten?')) return;
+  const handleDelete = async (table: 'participants' | 'timeslots', id: string, item: any) => {
+    const itemType = table === 'participants' ? 'Teilnehmer' : 'Zeitslot';
     
+    setConfirmDialog({
+      open: true,
+      title: `${itemType} löschen`,
+      description: `Sind Sie sicher, dass Sie diesen ${itemType.toLowerCase()} löschen möchten?\n\n${getItemDescription(table, item)}\n\nDieser Vorgang kann nicht rückgängig gemacht werden.`,
+      onConfirm: () => performDelete(table, id),
+      variant: "destructive",
+    });
+  };
+
+  const performDelete = async (table: 'participants' | 'timeslots', id: string) => {
     try {
       const { error } = await supabase
         .from(table)
@@ -157,7 +257,10 @@ const AdminData = () => {
       
       if (error) throw error;
       toast({ title: "Erfolgreich", description: "Eintrag wurde gelöscht." });
-      loadData();
+      setConfirmDialog({ ...confirmDialog, open: false });
+      if (selectedEvent) {
+        loadEventData(selectedEvent);
+      }
     } catch (error) {
       console.error('Error deleting data:', error);
       toast({
@@ -165,6 +268,14 @@ const AdminData = () => {
         description: "Eintrag konnte nicht gelöscht werden.",
         variant: "destructive",
       });
+    }
+  };
+
+  const getItemDescription = (table: 'participants' | 'timeslots', item: any) => {
+    if (table === 'participants') {
+      return `Name: ${item.first_name} ${item.last_name}\nAlter: ${item.age}\nTyp: ${item.participant_type}\nEmail: ${item.email || 'Nicht angegeben'}`;
+    } else {
+      return `Name: ${item.name}\nZeit: ${item.time}\nTyp: ${item.type === 'children' ? 'Kinderlauf' : 'Hauptlauf'}\nMax. Teilnehmer: ${item.max_participants}`;
     }
   };
 
@@ -182,9 +293,10 @@ const AdminData = () => {
               gender: '',
               email: '',
               participant_type: '',
-              event_id: events[0]?.id || ''
+              event_id: selectedEvent || ''
             });
           }}
+          disabled={!selectedEvent}
         >
           <Plus className="w-4 h-4 mr-2" />
           Neuer Teilnehmer
@@ -209,7 +321,6 @@ const AdminData = () => {
                 {editingItem?.id === participant.id ? (
                   <ParticipantEditRow 
                     participant={editingItem}
-                    events={events}
                     onSave={(data) => handleSave('participants', data)}
                     onCancel={() => setEditingItem(null)}
                     onChange={setEditingItem}
@@ -235,7 +346,7 @@ const AdminData = () => {
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleDelete('participants', participant.id)}
+                          onClick={() => handleDelete('participants', participant.id, participant)}
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -248,97 +359,7 @@ const AdminData = () => {
             {isCreating && activeTab === 'participants' && (
               <ParticipantEditRow 
                 participant={editingItem}
-                events={events}
                 onSave={(data) => handleSave('participants', data)}
-                onCancel={() => {
-                  setEditingItem(null);
-                  setIsCreating(false);
-                }}
-                onChange={setEditingItem}
-              />
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  const renderEventsTable = () => (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Events ({events.length})</h3>
-        <Button 
-          onClick={() => {
-            setIsCreating(true);
-            setEditingItem({
-              name: '',
-              description: '',
-              date: '',
-              year: new Date().getFullYear(),
-              registration_open: true
-            });
-          }}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Neues Event
-        </Button>
-      </div>
-      
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-border">
-          <thead>
-            <tr className="bg-muted">
-              <th className="border border-border p-2 text-left">Name</th>
-              <th className="border border-border p-2 text-left">Jahr</th>
-              <th className="border border-border p-2 text-left">Datum</th>
-              <th className="border border-border p-2 text-left">Anmeldung offen</th>
-              <th className="border border-border p-2 text-left">Aktionen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((event) => (
-              <tr key={event.id} className="hover:bg-muted/50">
-                {editingItem?.id === event.id ? (
-                  <EventEditRow 
-                    event={editingItem}
-                    onSave={(data) => handleSave('events', data)}
-                    onCancel={() => setEditingItem(null)}
-                    onChange={setEditingItem}
-                  />
-                ) : (
-                  <>
-                    <td className="border border-border p-2">{event.name}</td>
-                    <td className="border border-border p-2">{event.year}</td>
-                    <td className="border border-border p-2">{event.date || '-'}</td>
-                    <td className="border border-border p-2">
-                      {event.registration_open ? 'Ja' : 'Nein'}
-                    </td>
-                    <td className="border border-border p-2">
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingItem(event)}
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete('events', event.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </td>
-                  </>
-                )}
-              </tr>
-            ))}
-            {isCreating && activeTab === 'events' && (
-              <EventEditRow 
-                event={editingItem}
-                onSave={(data) => handleSave('events', data)}
                 onCancel={() => {
                   setEditingItem(null);
                   setIsCreating(false);
@@ -362,10 +383,12 @@ const AdminData = () => {
             setEditingItem({
               name: '',
               time: '',
+              type: 'normal',
               max_participants: 50,
-              event_id: events[0]?.id || ''
+              event_id: selectedEvent || ''
             });
           }}
+          disabled={!selectedEvent}
         >
           <Plus className="w-4 h-4 mr-2" />
           Neuer Zeitslot
@@ -380,7 +403,6 @@ const AdminData = () => {
               <th className="border border-border p-2 text-left">Zeit</th>
               <th className="border border-border p-2 text-left">Typ</th>
               <th className="border border-border p-2 text-left">Max Teilnehmer</th>
-              <th className="border border-border p-2 text-left">Event</th>
               <th className="border border-border p-2 text-left">Aktionen</th>
             </tr>
           </thead>
@@ -390,7 +412,6 @@ const AdminData = () => {
                 {editingItem?.id === timeslot.id ? (
                   <TimeslotEditRow 
                     timeslot={editingItem}
-                    events={events}
                     onSave={(data) => handleSave('timeslots', data)}
                     onCancel={() => setEditingItem(null)}
                     onChange={setEditingItem}
@@ -404,9 +425,6 @@ const AdminData = () => {
                     </td>
                     <td className="border border-border p-2">{timeslot.max_participants}</td>
                     <td className="border border-border p-2">
-                      {events.find(e => e.id === timeslot.event_id)?.name || '-'}
-                    </td>
-                    <td className="border border-border p-2">
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
@@ -418,7 +436,7 @@ const AdminData = () => {
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleDelete('timeslots', timeslot.id)}
+                          onClick={() => handleDelete('timeslots', timeslot.id, timeslot)}
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -431,7 +449,6 @@ const AdminData = () => {
             {isCreating && activeTab === 'timeslots' && (
               <TimeslotEditRow 
                 timeslot={editingItem}
-                events={events}
                 onSave={(data) => handleSave('timeslots', data)}
                 onCancel={() => {
                   setEditingItem(null);
@@ -463,40 +480,86 @@ const AdminData = () => {
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
         <Card>
           <CardHeader>
-            <CardTitle>Datenverwaltung</CardTitle>
-            <CardDescription>
-              Verwalten Sie Teilnehmer, Events und Zeitslots
-            </CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle>Datenverwaltung</CardTitle>
+                <CardDescription>
+                  Verwalten Sie Teilnehmer und Zeitslots für ein Event
+                </CardDescription>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Event:</span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="min-w-[200px] justify-between">
+                      {selectedEvent ? 
+                        events.find(e => e.id === selectedEvent)?.name || 'Event auswählen' : 
+                        'Event auswählen'
+                      }
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[200px] bg-background border z-50">
+                    {events.map((event) => (
+                      <DropdownMenuItem
+                        key={event.id}
+                        onClick={() => setSelectedEvent(event.id)}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium">{event.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {event.year} {event.date && `• ${new Date(event.date).toLocaleDateString('de-DE')}`}
+                          </span>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="participants">Teilnehmer</TabsTrigger>
-                <TabsTrigger value="events">Events</TabsTrigger>
-                <TabsTrigger value="timeslots">Zeitslots</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="participants" className="mt-6">
-                {renderParticipantsTable()}
-              </TabsContent>
-              
-              <TabsContent value="events" className="mt-6">
-                {renderEventsTable()}
-              </TabsContent>
-              
-              <TabsContent value="timeslots" className="mt-6">
-                {renderTimeslotsTable()}
-              </TabsContent>
-            </Tabs>
+            {!selectedEvent ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Bitte wählen Sie ein Event aus, um die Daten zu verwalten.</p>
+              </div>
+            ) : (
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="participants">Teilnehmer</TabsTrigger>
+                  <TabsTrigger value="timeslots">Zeitslots</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="participants" className="mt-6">
+                  {renderParticipantsTable()}
+                </TabsContent>
+                
+                <TabsContent value="timeslots" className="mt-6">
+                  {renderTimeslotsTable()}
+                </TabsContent>
+              </Tabs>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        variant={confirmDialog.variant}
+        confirmText={confirmDialog.variant === "destructive" ? "Löschen" : "Bestätigen"}
+      />
     </Layout>
   );
 };
 
 // Edit row components
-const ParticipantEditRow = ({ participant, events, onSave, onCancel, onChange }: any) => (
+const ParticipantEditRow = ({ participant, onSave, onCancel, onChange }: any) => (
   <>
     <td className="border border-border p-2">
       <div className="flex gap-2">
@@ -563,54 +626,7 @@ const ParticipantEditRow = ({ participant, events, onSave, onCancel, onChange }:
   </>
 );
 
-const EventEditRow = ({ event, onSave, onCancel, onChange }: any) => (
-  <>
-    <td className="border border-border p-2">
-      <Input
-        value={event.name}
-        onChange={(e) => onChange({...event, name: e.target.value})}
-        placeholder="Event Name"
-        className="text-sm"
-      />
-    </td>
-    <td className="border border-border p-2">
-      <Input
-        type="number"
-        value={event.year}
-        onChange={(e) => onChange({...event, year: parseInt(e.target.value)})}
-        className="text-sm"
-      />
-    </td>
-    <td className="border border-border p-2">
-      <Input
-        type="date"
-        value={event.date || ''}
-        onChange={(e) => onChange({...event, date: e.target.value})}
-        className="text-sm"
-      />
-    </td>
-    <td className="border border-border p-2">
-      <input
-        type="checkbox"
-        checked={event.registration_open}
-        onChange={(e) => onChange({...event, registration_open: e.target.checked})}
-        className="w-4 h-4"
-      />
-    </td>
-    <td className="border border-border p-2">
-      <div className="flex gap-1">
-        <Button size="sm" onClick={() => onSave(event)}>
-          <Save className="w-3 h-3" />
-        </Button>
-        <Button size="sm" variant="outline" onClick={onCancel}>
-          <X className="w-3 h-3" />
-        </Button>
-      </div>
-    </td>
-  </>
-);
-
-const TimeslotEditRow = ({ timeslot, events, onSave, onCancel, onChange }: any) => (
+const TimeslotEditRow = ({ timeslot, onSave, onCancel, onChange }: any) => (
   <>
     <td className="border border-border p-2">
       <Input
@@ -646,18 +662,6 @@ const TimeslotEditRow = ({ timeslot, events, onSave, onCancel, onChange }: any) 
         className="text-sm"
         min="1"
       />
-    </td>
-    <td className="border border-border p-2">
-      <select
-        value={timeslot.event_id}
-        onChange={(e) => onChange({...timeslot, event_id: e.target.value})}
-        className="w-full p-1 border rounded text-sm bg-background"
-      >
-        <option value="">Event wählen</option>
-        {events.map((event: Event) => (
-          <option key={event.id} value={event.id}>{event.name}</option>
-        ))}
-      </select>
     </td>
     <td className="border border-border p-2">
       <div className="flex gap-1">
