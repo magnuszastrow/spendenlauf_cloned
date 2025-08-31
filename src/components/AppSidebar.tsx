@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Info, Users, HelpCircle, Phone, User, Shield, LogOut } from "lucide-react";
+import { User, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getPublicNavigationItems, getAdminNavigationItems } from "@/config/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -13,17 +14,12 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-const navigationItems = [
-  { title: "Anmeldung", url: "/anmeldung", icon: User },
-  { title: "Info", url: "/info", icon: Info },
-  { title: "Sponsoren", url: "/sponsoren", icon: Users },
-  { title: "FAQs", url: "/faqs", icon: HelpCircle },
-  { title: "Kontakt", url: "/kontakt", icon: Phone },
-];
-
 export function AppSidebar() {
   const location = useLocation();
   const { user, isAdmin, signOut } = useAuth();
+
+  const navigationItems = getPublicNavigationItems();
+  const adminItems = getAdminNavigationItems();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -63,34 +59,17 @@ export function AppSidebar() {
             <SidebarMenu>
               {user ? (
                 <>
-                  {isAdmin && (
-                    <>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/admin/dashboard')} className="text-base py-3 h-auto">
-                          <Link to="/admin/dashboard">
-                            <Shield className="h-5 w-5" />
-                            <span>Dashboard</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/admin')} className="text-base py-3 h-auto">
-                          <Link to="/admin/dashboard">
-                            <Shield className="h-5 w-5" />
-                            <span>Export Data</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive('/admin/data')} className="text-base py-3 h-auto">
-                          <Link to="/admin/data">
-                            <User className="h-5 w-5" />
-                            <span>Data</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    </>
-                  )}
+                  {isAdmin && adminItems.map((item) => (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton asChild isActive={isActive(item.url)} className="text-base py-3 h-auto">
+                        <Link to={item.url}>
+                          <item.icon className="h-5 w-5" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                
                   <SidebarMenuItem>
                     <SidebarMenuButton onClick={() => signOut()} className="text-base py-3 h-auto">
                       <LogOut className="h-5 w-5" />

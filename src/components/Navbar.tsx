@@ -3,18 +3,14 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, User, Shield } from "lucide-react";
+import { getPublicNavigationItems, getAdminNavigationItems } from "@/config/navigation";
 
 const Navbar = () => {
   const location = useLocation();
   const { user, isAdmin, signOut } = useAuth();
 
-  const navigationItems = [
-    { href: "/anmeldung", label: "Anmeldung" },
-    { href: "/info", label: "Info" },
-    { href: "/sponsoren", label: "Sponsoren" },
-    { href: "/kontakt", label: "Kontakt" },
-    { href: "/faqs", label: "FAQs" },
-  ];
+  const navigationItems = getPublicNavigationItems();
+  const adminItems = getAdminNavigationItems();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -32,45 +28,32 @@ const Navbar = () => {
           <div className="flex items-center space-x-8">
             <ul className="flex items-center space-x-6">
               {navigationItems.map((item) => (
-                <li key={item.href}>
+                <li key={item.url}>
                   <Link
-                    to={item.href}
+                    to={item.url}
                     className={`text-black hover:text-gray-700 transition-colors ${
-                      isActive(item.href) ? "font-semibold" : ""
+                      isActive(item.url) ? "font-semibold" : ""
                     }`}
                   >
-                    {item.label}
+                    {item.title}
                   </Link>
                 </li>
               ))}
             </ul>
             
-            {user && (
+            {user && isAdmin && (
               <div className="ml-4 flex items-center space-x-4">
-                <Link
-                  to="/admin/dashboard"
-                  className={`text-black hover:text-gray-700 transition-colors ${
-                    isActive("/admin/dashboard") ? "font-semibold" : ""
-                  }`}
-                >
-                  Dashboard
-                </Link>
-                 <Link
-                  to="/admin/dashboard"
-                  className={`text-black hover:text-gray-700 transition-colors ${
-                    isActive("/admin") ? "font-semibold" : ""
-                  }`}
-                >
-                  Data Export
-                </Link>
-                <Link
-                  to="/admin/data"
-                  className={`text-black hover:text-gray-700 transition-colors ${
-                    isActive("/admin/data") ? "font-semibold" : ""
-                  }`}
-                >
-                  Data
-                </Link>
+                {adminItems.map((item) => (
+                  <Link
+                    key={item.url}
+                    to={item.url}
+                    className={`text-black hover:text-gray-700 transition-colors ${
+                      isActive(item.url) ? "font-semibold" : ""
+                    }`}
+                  >
+                    {item.title}
+                  </Link>
+                ))}
               </div>
             )}
           </div>
