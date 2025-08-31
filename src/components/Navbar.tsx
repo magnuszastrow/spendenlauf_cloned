@@ -19,14 +19,11 @@ const Navbar = () => {
       {/* Desktop/Tablet Fixed Header */}
       <nav className="fixed top-0 left-0 right-0 z-50 hidden md:flex bg-highlight px-4 py-2 shadow-sm">
         <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <SidebarTrigger className="text-black" />
-            <Link to="/" className="flex items-center">
-              <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-xs">Logo</span>
-              </div>
-            </Link>
-          </div>
+          <Link to="/" className="flex items-center">
+            <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+              <span className="text-xs">Logo</span>
+            </div>
+          </Link>
           
           <div className="flex items-center space-x-8">
             <ul className="flex items-center space-x-6">
