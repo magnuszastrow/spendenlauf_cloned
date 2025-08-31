@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { Trash2, Edit2, Plus, Save, X, ChevronDown } from "lucide-react";
+import { Trash2, Edit2, Plus, Save, X, ChevronDown, Calendar } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { 
   DropdownMenu, 
@@ -17,6 +17,14 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Participant {
   id: string;
@@ -78,6 +86,22 @@ const AdminData = () => {
     description: "",
     onConfirm: () => {},
   });
+  const [showCreateEventDialog, setShowCreateEventDialog] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    name: '',
+    description: '',
+    date: '',
+    year: new Date().getFullYear(),
+    registration_open: true
+  });
+  const [newTimeslots, setNewTimeslots] = useState<Array<{
+    name: string;
+    time: string;
+    type: 'normal' | 'children';
+    max_participants: number;
+  }>>([
+    { name: 'Hauptlauf', time: '10:00', type: 'normal' as const, max_participants: 50 }
+  ]);
 
   console.log('AdminData render:', { user: !!user, isAdmin, authLoading });
 
@@ -279,6 +303,109 @@ const AdminData = () => {
     }
   };
 
+  const handleCreateEvent = async () => {
+    try {
+      if (!newEvent.name.trim()) {
+        toast({
+          title: "Fehler",
+          description: "Bitte geben Sie einen Event-Namen ein.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (newTimeslots.some(ts => !ts.name.trim() || !ts.time)) {
+        toast({
+          title: "Fehler", 
+          description: "Bitte füllen Sie alle Zeitslot-Felder aus.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create event
+      const { data: eventData, error: eventError } = await supabase
+        .from('events')
+        .insert({
+          name: newEvent.name,
+          description: newEvent.description,
+          date: newEvent.date || null,
+          year: newEvent.year,
+          registration_open: newEvent.registration_open
+        })
+        .select()
+        .single();
+
+      if (eventError) throw eventError;
+
+      // Create timeslots for the new event
+      const timeslotInserts = newTimeslots.map(ts => ({
+        ...ts,
+        event_id: eventData.id
+      }));
+
+      const { error: timeslotError } = await supabase
+        .from('timeslots')
+        .insert(timeslotInserts);
+
+      if (timeslotError) throw timeslotError;
+
+      toast({
+        title: "Erfolgreich",
+        description: "Event wurde erstellt."
+      });
+
+      // Reset form and close dialog
+      setNewEvent({
+        name: '',
+        description: '',
+        date: '',
+        year: new Date().getFullYear(),
+        registration_open: true
+      });
+      setNewTimeslots([
+        { name: 'Hauptlauf', time: '10:00', type: 'normal' as const, max_participants: 50 }
+      ]);
+      setShowCreateEventDialog(false);
+
+      // Reload events and select the new one
+      await loadEvents();
+      setSelectedEvent(eventData.id);
+
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast({
+        title: "Fehler",
+        description: "Event konnte nicht erstellt werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const renderLimitedTable = (data: any[], renderRow: (item: any) => React.ReactNode) => {
+    const DISPLAY_LIMIT = 10;
+    
+    if (data.length <= DISPLAY_LIMIT) {
+      return data.map(renderRow);
+    }
+
+    const firstPart = data.slice(0, 5);
+    const lastPart = data.slice(-5);
+    const hiddenCount = data.length - 10;
+
+    return (
+      <>
+        {firstPart.map(renderRow)}
+        <tr key="separator" className="bg-muted/30">
+          <td colSpan={6} className="border border-border p-4 text-center text-muted-foreground">
+            ... {hiddenCount} weitere Einträge ...
+          </td>
+        </tr>
+        {lastPart.map(renderRow)}
+      </>
+    );
+  };
+
   const renderParticipantsTable = () => (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -316,7 +443,7 @@ const AdminData = () => {
             </tr>
           </thead>
           <tbody>
-            {participants.map((participant) => (
+            {renderLimitedTable(participants, (participant) => (
               <tr key={participant.id} className="hover:bg-muted/50">
                 {editingItem?.id === participant.id ? (
                   <ParticipantEditRow 
@@ -407,7 +534,7 @@ const AdminData = () => {
             </tr>
           </thead>
           <tbody>
-            {timeslots.map((timeslot) => (
+            {renderLimitedTable(timeslots, (timeslot) => (
               <tr key={timeslot.id} className="hover:bg-muted/50">
                 {editingItem?.id === timeslot.id ? (
                   <TimeslotEditRow 
@@ -543,7 +670,185 @@ const AdminData = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Add Event Button */}
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-4">
+          <Button
+            onClick={() => setShowCreateEventDialog(true)}
+            className="w-full sm:w-auto"
+            variant="outline"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Neues Event erstellen
+          </Button>
+        </div>
       </div>
+
+      {/* Create Event Dialog */}
+      <Dialog open={showCreateEventDialog} onOpenChange={setShowCreateEventDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Neues Event erstellen</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Event Details */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium">Event Details</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="event-name">Name *</Label>
+                  <Input
+                    id="event-name"
+                    value={newEvent.name}
+                    onChange={(e) => setNewEvent({...newEvent, name: e.target.value})}
+                    placeholder="Event Name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="event-year">Jahr</Label>
+                  <Input
+                    id="event-year"
+                    type="number"
+                    value={newEvent.year}
+                    onChange={(e) => setNewEvent({...newEvent, year: parseInt(e.target.value)})}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="event-date">Datum</Label>
+                <Input
+                  id="event-date"
+                  type="date"
+                  value={newEvent.date}
+                  onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="event-description">Beschreibung</Label>
+                <Input
+                  id="event-description"
+                  value={newEvent.description}
+                  onChange={(e) => setNewEvent({...newEvent, description: e.target.value})}
+                  placeholder="Event Beschreibung"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="registration-open"
+                  checked={newEvent.registration_open}
+                  onCheckedChange={(checked) => setNewEvent({...newEvent, registration_open: !!checked})}
+                />
+                <Label htmlFor="registration-open">Anmeldung geöffnet</Label>
+              </div>
+            </div>
+
+            {/* Timeslots */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="text-sm font-medium">Zeitslots *</h4>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setNewTimeslots([...newTimeslots, { name: '', time: '10:00', type: 'normal' as const, max_participants: 50 }])}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Zeitslot hinzufügen
+                </Button>
+              </div>
+              
+              {newTimeslots.map((timeslot, index) => (
+                <div key={index} className="p-4 border rounded-lg space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Zeitslot {index + 1}</span>
+                    {newTimeslots.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setNewTimeslots(newTimeslots.filter((_, i) => i !== index))}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label>Name</Label>
+                      <Input
+                        value={timeslot.name}
+                        onChange={(e) => {
+                          const updated = [...newTimeslots];
+                          updated[index].name = e.target.value;
+                          setNewTimeslots(updated);
+                        }}
+                        placeholder="Zeitslot Name"
+                      />
+                    </div>
+                    <div>
+                      <Label>Zeit</Label>
+                      <Input
+                        type="time"
+                        value={timeslot.time}
+                        onChange={(e) => {
+                          const updated = [...newTimeslots];
+                          updated[index].time = e.target.value;
+                          setNewTimeslots(updated);
+                        }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label>Typ</Label>
+                      <select
+                        value={timeslot.type}
+                        onChange={(e) => {
+                          const updated = [...newTimeslots];
+                          updated[index].type = e.target.value as 'normal' | 'children';
+                          setNewTimeslots(updated);
+                        }}
+                        className="w-full p-2 border rounded bg-background"
+                      >
+                        <option value="normal">Hauptlauf</option>
+                        <option value="children">Kinderlauf</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label>Max. Teilnehmer</Label>
+                      <Input
+                        type="number"
+                        value={timeslot.max_participants}
+                        onChange={(e) => {
+                          const updated = [...newTimeslots];
+                          updated[index].max_participants = parseInt(e.target.value);
+                          setNewTimeslots(updated);
+                        }}
+                        min="1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateEventDialog(false)}>
+              Abbrechen
+            </Button>
+            <Button onClick={handleCreateEvent}>
+              Event erstellen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={confirmDialog.open}
