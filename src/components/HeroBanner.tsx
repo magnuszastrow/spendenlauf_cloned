@@ -27,7 +27,7 @@ const HeroBanner = () => {
       className={
         "header relative flex items-center justify-center " +
         // reduced mobile height (min:160px, max:260px)
-        "h-[clamp(160px,28vh,260px)] md:h-[clamp(400px,50vh,600px)] " +
+        "h-[clamp(180px,28vh,280px)] md:h-[clamp(400px,50vh,600px)] " +
         "overflow-hidden"
       }
     >
