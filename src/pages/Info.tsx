@@ -3,6 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { de } from "date-fns/locale";
 
 const Info = () => {
   const navigate = useNavigate();
@@ -12,19 +16,83 @@ const Info = () => {
     section?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
+  // Fetch active event with simplified typing
+  const { data: activeEvent, isLoading: eventLoading } = useQuery({
+    queryKey: ["active-event"],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from("events")
+          .select("id, name, date, description, \"is_active()\"")
+          .eq("is_active()", true)
+          .maybeSingle();
+        
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error("Error fetching active event:", error);
+        return null;
+      }
+    },
+  });
+
+  // Fetch timeslots for active event with simplified typing
+  const { data: timeslots, isLoading: timeslotsLoading } = useQuery({
+    queryKey: ["timeslots", activeEvent?.id],
+    queryFn: async () => {
+      if (!activeEvent?.id) return [];
+      
+      try {
+        const { data, error } = await supabase
+          .from("timeslots")
+          .select("id, name, time, Description")
+          .eq("event_id", activeEvent.id)
+          .order("time");
+        
+        if (error) throw error;
+        return data || [];
+      } catch (error) {
+        console.error("Error fetching timeslots:", error);
+        return [];
+      }
+    },
+    enabled: !!activeEvent?.id,
+  });
+
+  const isLoading = eventLoading || timeslotsLoading;
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Datum wird noch bekannt gegeben";
+    try {
+      return format(new Date(dateString), "d. MMMM yyyy", { locale: de });
+    } catch {
+      return "Ungültiges Datum";
+    }
+  };
+
+  const formatTime = (timeString: string) => {
+    return timeString.slice(0, 5); // Remove seconds from HH:MM:SS
+  };
+
   return (
     <Layout>
       <main className="bg-muted min-h-screen">
         <div className="container mx-auto px-4 py-8">
           <Separator className="my-8" />
           <p className="text-center text-lg font-semibold">
-            <strong>28. September 2025 - Kurpark</strong>
+            <strong>
+              {isLoading ? "Lade Veranstaltung..." : 
+               activeEvent ? `${formatDate(activeEvent.date)} - Kurpark` : 
+               "Keine aktive Veranstaltung"}
+            </strong>
           </p>
           <Separator className="my-8" />
           
           {/* Hero Text */}
           <p className="mt-6 text-lg text-center md:text-xl text-muted-foreground max-w-4xl mx-auto">
-            Wir, die Soldaten und Soldatinnen des Standorts Lüneburg, laufen gemeinsam mit euch für das Kinderhospiz Löwenherz in Lüneburg!
+            {isLoading ? "Lade Veranstaltungsdetails..." : 
+             activeEvent?.description || 
+             "Wir, die Soldaten und Soldatinnen des Standorts Lüneburg, laufen gemeinsam mit euch für das Kinderhospiz Löwenherz in Lüneburg!"}
           </p>
           
           <div className="text-center mt-8 mb-12">
@@ -53,16 +121,25 @@ const Info = () => {
                 </Button>
                 
                 <div className="space-y-3 text-sm">
-                  <p><strong>Datum:</strong> 28. September 2025</p>
+                  <p><strong>Datum:</strong> {isLoading ? "Lade..." : formatDate(activeEvent?.date)}</p>
                   <p><strong>Ort:</strong> Kurpark Lüneburg</p>
                   
                   <div>
                     <p className="font-semibold mb-2">Startzeiten:</p>
-                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                      <li><strong>11:00</strong> – Durchlauf 01 – 90 Min, 1.3 km je Runde</li>
-                      <li><strong>13:30 Kinderlauf</strong> – 20 Min, 400 m (bis 10 J.)</li>  
-                      <li><strong>14:30</strong> – Durchlauf 02 – 90 Min, 1.3 km je Runde</li>
-                    </ul>
+                    {isLoading ? (
+                      <p className="text-muted-foreground">Lade Startzeiten...</p>
+                    ) : timeslots && timeslots.length > 0 ? (
+                      <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                        {timeslots.map((slot: any) => (
+                          <li key={slot.id}>
+                            <strong>{formatTime(slot.time)}</strong> – {slot.name}
+                            {slot.Description && ` – ${slot.Description}`}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-muted-foreground">Startzeiten werden noch bekannt gegeben</p>
+                    )}
                   </div>
 
                   <div className="mt-4">

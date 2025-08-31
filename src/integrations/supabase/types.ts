@@ -20,6 +20,7 @@ export type Database = {
           date: string | null
           description: string | null
           id: string
+          "is_active()": boolean
           name: string
           registration_open: boolean | null
           updated_at: string | null
@@ -30,6 +31,7 @@ export type Database = {
           date?: string | null
           description?: string | null
           id?: string
+          "is_active()"?: boolean
           name: string
           registration_open?: boolean | null
           updated_at?: string | null
@@ -40,6 +42,7 @@ export type Database = {
           date?: string | null
           description?: string | null
           id?: string
+          "is_active()"?: boolean
           name?: string
           registration_open?: boolean | null
           updated_at?: string | null
@@ -207,6 +210,7 @@ export type Database = {
       timeslots: {
         Row: {
           created_at: string
+          Description: string | null
           event_id: string
           id: string
           max_participants: number
@@ -217,6 +221,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          Description?: string | null
           event_id: string
           id?: string
           max_participants: number
@@ -227,6 +232,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          Description?: string | null
           event_id?: string
           id?: string
           max_participants?: number
