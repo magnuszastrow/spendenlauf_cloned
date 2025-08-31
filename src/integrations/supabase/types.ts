@@ -21,11 +21,9 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean | null
-          "is_active()": boolean
           name: string
           registration_open: boolean | null
           updated_at: string | null
-          year: number
         }
         Insert: {
           created_at?: string | null
@@ -33,11 +31,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
-          "is_active()"?: boolean
           name: string
           registration_open?: boolean | null
           updated_at?: string | null
-          year: number
         }
         Update: {
           created_at?: string | null
@@ -45,11 +41,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
-          "is_active()"?: boolean
           name?: string
           registration_open?: boolean | null
           updated_at?: string | null
-          year?: number
         }
         Relationships: []
       }
