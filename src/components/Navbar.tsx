@@ -10,7 +10,7 @@ const Navbar = () => {
 
   const navigationItems = [
     { href: "/anmeldung", label: "Anmeldung" },
-    { href: "/", label: "Info" },
+    { href: "/info", label: "Info" },
     { href: "/sponsoren", label: "Sponsoren" },
     { href: "/kontakt", label: "Kontakt" },
     { href: "/faqs", label: "FAQs" },
