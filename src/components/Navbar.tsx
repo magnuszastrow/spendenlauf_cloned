@@ -14,6 +14,7 @@ const Navbar = () => {
     { href: "/sponsoren", label: "Sponsoren" },
     { href: "/kontakt", label: "Kontakt" },
     { href: "/faqs", label: "FAQs" },
+    ...(user && isAdmin ? [{ href: "/admin", label: "Export" }] : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;
