@@ -99,8 +99,9 @@ const AdminData = () => {
     time: string;
     type: 'normal' | 'children';
     max_participants: number;
+    description: string;
   }>>([
-    { name: 'Hauptlauf', time: '10:00', type: 'normal' as const, max_participants: 50 }
+    { name: 'Hauptlauf', time: '10:00', type: 'normal' as const, max_participants: 50, description: '90 Min, 1.3km Runden' }
   ]);
 
   console.log('AdminData render:', { user: !!user, isAdmin, authLoading });
@@ -364,7 +365,7 @@ const AdminData = () => {
         registration_open: true
       });
       setNewTimeslots([
-        { name: 'Hauptlauf', time: '10:00', type: 'normal' as const, max_participants: 50 }
+        { name: 'Hauptlauf', time: '10:00', type: 'normal' as const, max_participants: 50, description: '90 Min, 1.3km Runden' }
       ]);
       setShowCreateEventDialog(false);
 
@@ -668,20 +669,20 @@ const AdminData = () => {
                 </TabsContent>
               </Tabs>
             )}
+            
+            {/* Add Event Button */}
+            <div className="mt-6 pt-4 border-t">
+              <Button
+                onClick={() => setShowCreateEventDialog(true)}
+                className="w-full sm:w-auto"
+                variant="outline"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Neues Event erstellen
+              </Button>
+            </div>
           </CardContent>
         </Card>
-
-        {/* Add Event Button */}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-4">
-          <Button
-            onClick={() => setShowCreateEventDialog(true)}
-            className="w-full sm:w-auto"
-            variant="outline"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Neues Event erstellen
-          </Button>
-        </div>
       </div>
 
       {/* Create Event Dialog */}
@@ -754,7 +755,7 @@ const AdminData = () => {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setNewTimeslots([...newTimeslots, { name: '', time: '10:00', type: 'normal' as const, max_participants: 50 }])}
+                  onClick={() => setNewTimeslots([...newTimeslots, { name: '', time: '10:00', type: 'normal' as const, max_participants: 50, description: '90 Min, 1.3km Runden' }])}
                 >
                   <Plus className="w-3 h-3 mr-1" />
                   Zeitslot hinzufügen
@@ -833,6 +834,19 @@ const AdminData = () => {
                         min="1"
                       />
                     </div>
+                  </div>
+                  
+                  <div>
+                    <Label>Beschreibung</Label>
+                    <Input
+                      value={timeslot.description}
+                      onChange={(e) => {
+                        const updated = [...newTimeslots];
+                        updated[index].description = e.target.value;
+                        setNewTimeslots(updated);
+                      }}
+                      placeholder="90 Min, 1.3km Runden"
+                    />
                   </div>
                 </div>
               ))}
