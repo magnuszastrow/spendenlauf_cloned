@@ -55,6 +55,14 @@ const Navbar = () => {
                 >
                   Dashboard
                 </Link>
+                 <Link
+                  to="/admin/dashboard"
+                  className={`text-black hover:text-gray-700 transition-colors ${
+                    isActive("/admin") ? "font-semibold" : ""
+                  }`}
+                >
+                  Data Export
+                </Link>
                 <Link
                   to="/admin/data"
                   className={`text-black hover:text-gray-700 transition-colors ${
