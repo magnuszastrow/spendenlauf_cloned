@@ -219,8 +219,8 @@ const AdminData = () => {
 
   const performSave = async (table: 'participants' | 'timeslots' | 'events', data: any) => {
     try {
-      // Ensure event_id is set to selected event for new items
-      if (!data.event_id && selectedEvent) {
+      // Ensure event_id is set to selected event for new items (only for participants and timeslots)
+      if (!data.event_id && selectedEvent && (table === 'participants' || table === 'timeslots')) {
         data.event_id = selectedEvent;
       }
 
