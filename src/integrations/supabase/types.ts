@@ -20,6 +20,7 @@ export type Database = {
           date: string | null
           description: string | null
           id: string
+          is_active: boolean | null
           "is_active()": boolean
           name: string
           registration_open: boolean | null
@@ -31,6 +32,7 @@ export type Database = {
           date?: string | null
           description?: string | null
           id?: string
+          is_active?: boolean | null
           "is_active()"?: boolean
           name: string
           registration_open?: boolean | null
@@ -42,6 +44,7 @@ export type Database = {
           date?: string | null
           description?: string | null
           id?: string
+          is_active?: boolean | null
           "is_active()"?: boolean
           name?: string
           registration_open?: boolean | null

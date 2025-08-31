@@ -24,8 +24,8 @@ const Info = () => {
       try {
         const { data, error } = await supabase
           .from("events")
-          .select("id, name, date, description, \"is_active()\"")
-          .eq("is_active()", true)
+          .select("id, name, date, description, is_active")
+          .eq("is_active", true)
           .maybeSingle();
         
         if (error) throw error;
