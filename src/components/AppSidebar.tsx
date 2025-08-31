@@ -74,6 +74,14 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/admin')} className="text-base py-3 h-auto">
+                          <Link to="/admin/dashboard">
+                            <Shield className="h-5 w-5" />
+                            <span>Export Data</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={isActive('/admin/data')} className="text-base py-3 h-auto">
                           <Link to="/admin/data">
                             <User className="h-5 w-5" />
