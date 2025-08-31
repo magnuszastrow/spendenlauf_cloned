@@ -47,7 +47,6 @@ interface Event {
   name: string;
   description?: string;
   date?: string;
-  year: number;
   registration_open: boolean;
   created_at: string;
 }
@@ -132,7 +131,7 @@ const AdminData = () => {
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
         .select('*')
-        .order('year', { ascending: false });
+        .order('created_at', { ascending: false });
 
       console.log('Events loaded:', eventsData, eventsError);
       if (eventsError) throw eventsError;
@@ -337,7 +336,6 @@ const AdminData = () => {
           name: newEvent.name,
           description: newEvent.description,
           date: newEvent.date || null,
-          year: newEvent.date ? new Date(newEvent.date).getFullYear() : new Date().getFullYear(),
           registration_open: newEvent.registration_open,
           is_active: newEvent.is_active
         })
@@ -748,7 +746,7 @@ const AdminData = () => {
                         <div className="flex flex-col">
                           <span className="font-medium">{event.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            {event.date ? new Date(event.date).toLocaleDateString('de-DE') : `Jahr ${event.year}`}
+                            {event.date ? new Date(event.date).toLocaleDateString('de-DE') : 'Kein Datum'}
                           </span>
                         </div>
                       </DropdownMenuItem>

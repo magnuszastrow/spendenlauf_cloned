@@ -52,7 +52,6 @@ const AdminDashboard = () => {
   const [events, setEvents] = useState<Array<{
     id: string;
     name: string;
-    year: number;
     date: string | null;
   }>>([]);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
@@ -64,8 +63,8 @@ const AdminDashboard = () => {
       console.log('Loading events...');
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select('id, name, year, date')
-        .order('year', { ascending: false });
+        .select('id, name, date')
+        .order('created_at', { ascending: false });
 
       console.log('Events loaded:', eventsData, eventsError);
       if (eventsError) throw eventsError;
@@ -244,7 +243,7 @@ const AdminDashboard = () => {
                       <div className="flex flex-col">
                         <span className="font-medium">{event.name}</span>
                         <span className="text-xs text-muted-foreground">
-                          {event.year} {event.date && `• ${new Date(event.date).toLocaleDateString('de-DE')}`}
+                          {event.date ? new Date(event.date).toLocaleDateString('de-DE') : 'Kein Datum'}
                         </span>
                       </div>
                     </DropdownMenuItem>

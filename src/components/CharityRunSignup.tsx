@@ -317,7 +317,7 @@ export const CharityRunSignup = () => {
       console.log('Fetching active events...');
       const { data: events, error: eventsError } = await supabase
         .from('events')
-        .select('id, name, year')
+        .select('id, name, date')
         .eq('registration_open', true)
         .limit(1);
 
@@ -332,7 +332,7 @@ export const CharityRunSignup = () => {
       }
 
       const eventId = events[0].id;
-      console.log('Found active event:', { eventId, name: events[0].name, year: events[0].year });
+      console.log('Found active event:', { eventId, name: events[0].name, date: events[0].date });
 
       let teamId = null;
       
@@ -538,7 +538,7 @@ export const CharityRunSignup = () => {
       console.log('Fetching active events for team registration...');
       const { data: events, error: eventsError } = await supabase
         .from('events')
-        .select('id, name, year')
+        .select('id, name, date')
         .eq('registration_open', true)
         .limit(1);
 
@@ -844,7 +844,7 @@ export const CharityRunSignup = () => {
       console.log('Fetching active events for children run...');
       const { data: events, error: eventsError } = await supabase
         .from('events')
-        .select('id, name, year')
+        .select('id, name, date')
         .eq('registration_open', true)
         .limit(1);
 
