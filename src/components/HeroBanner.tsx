@@ -1,24 +1,18 @@
 import { useEffect, useState } from "react";
 import heroImage from "@/assets/titelbild.jpg";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const HeroBanner = () => {
   const [scrollY, setScrollY] = useState(0);
-  const [windowWidth, setWindowWidth] = useState(
-    typeof window !== "undefined" ? window.innerWidth : 1024
-  );
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
-    const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("scroll", handleScroll);
-    window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleResize);
     };
   }, []);
-
-  const isMobile = windowWidth < 768;
 
   // Keep parallax subtle and never expose edges
   const parallaxY = Math.min(scrollY * 0.35, isMobile ? 30 : 60);
