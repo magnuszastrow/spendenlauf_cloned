@@ -34,17 +34,17 @@ const Index = () => {
               <CardContent className="space-y-3">
                 <Link to="/admin/dashboard">
                   <Button className="w-full" variant="default">
-                    📊 Dashboard
+                    Dashboard
                   </Button>
                 </Link>
                 <Link to="/admin/data">
                   <Button className="w-full" variant="outline">
-                    🗂️ Datenverwaltung
+                    Datenverwaltung
                   </Button>
                 </Link>
                 <Link to="/admin">
                   <Button className="w-full" variant="outline">
-                    📋 Export (Alt)
+                    Export (Alt)
                   </Button>
                 </Link>
               </CardContent>
