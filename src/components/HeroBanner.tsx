@@ -20,9 +20,8 @@ const HeroBanner = () => {
 
   const isMobile = windowWidth < 768;
 
-  // On mobile: focus on the top 2/3 of the image
+  // Just reposition the image instead of cutting it
   const objectPosition = isMobile ? "center top" : "center 20%";
-  const objectFit = "cover";
 
   return (
     <header className="header relative flex items-center justify-center h-[clamp(300px,33vh,400px)] md:h-[clamp(400px,50vh,600px)] overflow-hidden">
@@ -32,11 +31,9 @@ const HeroBanner = () => {
           alt="Lüneburger Spendenlauf Hero"
           className="absolute inset-0 w-full h-full object-cover"
           style={{
-            objectFit,
             objectPosition,
             transform: `translateY(${scrollY * 0.5}px) scale(1.1)`,
             transformOrigin: "center center",
-            clipPath: isMobile ? "inset(0 0 33% 0)" : "none", // cut off bottom 1/3 on mobile
           }}
         />
       </div>
