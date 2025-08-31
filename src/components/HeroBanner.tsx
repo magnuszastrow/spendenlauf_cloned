@@ -20,14 +20,27 @@ const HeroBanner = () => {
 
   const isMobile = windowWidth < 768;
 
+  // Keep parallax subtle and never expose edges
   const parallaxY = Math.min(scrollY * 0.35, isMobile ? 30 : 60);
+
+  const imgStyle = isMobile
+    ? {
+        objectPosition: "center top",        // show from the very top
+        transform: `translateY(${parallaxY}px) scale(1.25)`, // extra scale so it always covers
+        transformOrigin: "center top",
+      }
+    : {
+        objectPosition: "center 20%",
+        transform: `translateY(${parallaxY}px) scale(1.1)`,
+        transformOrigin: "center center",
+      };
 
   return (
     <header
       className={
+        // Smaller hero on mobile so the visible area aligns with the top ~2/3 of the photo
         "header relative flex items-center justify-center " +
-        // reduced mobile height (min:160px, max:260px)
-        "h-[clamp(160px,28vh,260px)] md:h-[clamp(400px,50vh,600px)] " +
+        "h-[clamp(220px,32vh,300px)] md:h-[clamp(400px,50vh,600px)] " +
         "overflow-hidden"
       }
     >
@@ -36,10 +49,7 @@ const HeroBanner = () => {
           src={heroImage}
           alt="Lüneburger Spendenlauf Hero"
           className="absolute inset-0 w-full h-full object-cover"
-          style={{
-            objectPosition: isMobile ? "center top" : "center 20%",
-            transform: `translateY(${parallaxY}px) scale(${isMobile ? 1.2 : 1.1})`,
-          }}
+          style={imgStyle}
         />
       </div>
 
@@ -48,12 +58,10 @@ const HeroBanner = () => {
       {/* Hero Text */}
       <div className="relative z-10 text-center text-white animate-fade-in">
         <h1 className="text-4xl font-bold uppercase tracking-wider md:text-6xl lg:text-7xl">
-          <span className="text-highlight">LÜNEBURGER</span>{" "}
-          <span>SPENDENLAUF</span>
+          <span className="text-highlight">LÜNEBURGER</span> <span>SPENDENLAUF</span>
         </h1>
         <p className="mt-4 text-2xl md:text-3xl lg:text-5xl">
-          <span>Gemeinsam</span>{" "}
-          <span className="text-highlight">für Kinder</span>
+          <span>Gemeinsam</span> <span className="text-highlight">für Kinder</span>
         </p>
       </div>
     </header>
