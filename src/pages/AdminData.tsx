@@ -91,7 +91,6 @@ const AdminData = () => {
     name: '',
     description: '',
     date: '',
-    year: new Date().getFullYear(),
     registration_open: true,
     is_active: false
   });
@@ -307,7 +306,7 @@ const AdminData = () => {
     } else if (table === 'timeslots') {
       return `Name: ${item.name}\nZeit: ${item.time}\nTyp: ${item.type === 'children' ? 'Kinderlauf' : 'Hauptlauf'}\nMax. Teilnehmer: ${item.max_participants}`;
     } else {
-      return `Name: ${item.name}\nJahr: ${item.year}\nDatum: ${item.date ? new Date(item.date).toLocaleDateString('de-DE') : 'Nicht angegeben'}\nStatus: ${item.is_active ? 'Aktiv' : 'Inaktiv'}`;
+      return `Name: ${item.name}\nDatum: ${item.date ? new Date(item.date).toLocaleDateString('de-DE') : 'Nicht angegeben'}\nStatus: ${item.is_active ? 'Aktiv' : 'Inaktiv'}`;
     }
   };
 
@@ -338,7 +337,7 @@ const AdminData = () => {
           name: newEvent.name,
           description: newEvent.description,
           date: newEvent.date || null,
-          year: newEvent.year,
+          year: newEvent.date ? new Date(newEvent.date).getFullYear() : new Date().getFullYear(),
           registration_open: newEvent.registration_open,
           is_active: newEvent.is_active
         })
@@ -369,7 +368,6 @@ const AdminData = () => {
         name: '',
         description: '',
         date: '',
-        year: new Date().getFullYear(),
         registration_open: true,
         is_active: false
       });
@@ -630,7 +628,6 @@ const AdminData = () => {
           <thead>
             <tr className="bg-muted">
               <th className="border border-border p-2 text-left">Name</th>
-              <th className="border border-border p-2 text-left">Jahr</th>
               <th className="border border-border p-2 text-left">Datum</th>
               <th className="border border-border p-2 text-left">Anmeldung</th>
               <th className="border border-border p-2 text-left">Aktiv</th>
@@ -650,7 +647,6 @@ const AdminData = () => {
                 ) : (
                   <>
                     <td className="border border-border p-2">{event.name}</td>
-                    <td className="border border-border p-2">{event.year}</td>
                     <td className="border border-border p-2">
                       {event.date ? new Date(event.date).toLocaleDateString('de-DE') : '-'}
                     </td>
@@ -752,7 +748,7 @@ const AdminData = () => {
                         <div className="flex flex-col">
                           <span className="font-medium">{event.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            {event.year} {event.date && `• ${new Date(event.date).toLocaleDateString('de-DE')}`}
+                            {event.date ? new Date(event.date).toLocaleDateString('de-DE') : `Jahr ${event.year}`}
                           </span>
                         </div>
                       </DropdownMenuItem>
@@ -809,24 +805,14 @@ const AdminData = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="event-year">Jahr</Label>
+                  <Label htmlFor="event-date">Datum</Label>
                   <Input
-                    id="event-year"
-                    type="number"
-                    value={newEvent.year}
-                    onChange={(e) => setNewEvent({...newEvent, year: parseInt(e.target.value)})}
+                    id="event-date"
+                    type="date"
+                    value={newEvent.date}
+                    onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
                   />
                 </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="event-date">Datum</Label>
-                <Input
-                  id="event-date"
-                  type="date"
-                  value={newEvent.date}
-                  onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
-                />
               </div>
               
               <div>
@@ -1114,14 +1100,6 @@ const EventEditRow = ({ event, onSave, onCancel, onChange }: any) => (
         value={event.name}
         onChange={(e) => onChange({...event, name: e.target.value})}
         placeholder="Event Name"
-        className="text-sm"
-      />
-    </td>
-    <td className="border border-border p-2">
-      <Input
-        type="number"
-        value={event.year}
-        onChange={(e) => onChange({...event, year: parseInt(e.target.value)})}
         className="text-sm"
       />
     </td>
