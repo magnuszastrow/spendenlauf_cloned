@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Navigate } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
+import { Users, Calendar, Clock, TrendingUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu, 
@@ -255,51 +255,50 @@ const AdminDashboard = () => {
 
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="backdrop-blur-md bg-white/10 border-white/20 shadow-xl">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-foreground/90">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
                   Gesamt Teilnehmer
                 </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                  {stats.totalParticipants}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <div className="text-2xl font-bold">{stats.totalParticipants}</div>
+                <p className="text-xs text-muted-foreground">
                   Registrierte Läufer
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="backdrop-blur-md bg-white/10 border-white/20 shadow-xl">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-foreground/90">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
                   Zeitslots
                 </CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                  {stats.totalTimeslots}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <div className="text-2xl font-bold">{stats.totalTimeslots}</div>
+                <p className="text-xs text-muted-foreground">
                   Verfügbare Startzeiten
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="backdrop-blur-md bg-white/10 border-white/20 shadow-xl">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-foreground/90">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
                   Auslastung
                 </CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                <div className="text-2xl font-bold">
                   {stats.timeslotFillRates.length > 0 
                     ? Math.round(stats.timeslotFillRates.reduce((acc, slot) => acc + slot.percentage, 0) / stats.timeslotFillRates.length)
                     : 0}%
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground">
                   Durchschnittliche Auslastung
                 </p>
               </CardContent>
@@ -308,9 +307,9 @@ const AdminDashboard = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Timeslot Fill Rates */}
-            <Card className="backdrop-blur-md bg-white/5 border-white/20 shadow-xl">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-foreground/90">Zeitslot Auslastung</CardTitle>
+                <CardTitle>Zeitslot Auslastung</CardTitle>
                 <CardDescription>
                   Wie voll sind die einzelnen Startzeiten?
                 </CardDescription>
@@ -322,7 +321,7 @@ const AdminDashboard = () => {
                   </p>
                 ) : (
                   stats.timeslotFillRates.map((slot) => (
-                    <div key={slot.id} className="space-y-2 p-3 rounded-lg backdrop-blur-sm bg-white/5 border border-white/10">
+                    <div key={slot.id} className="space-y-2">
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="font-medium">{slot.name}</p>
@@ -335,7 +334,6 @@ const AdminDashboard = () => {
                           <Badge 
                             variant={slot.percentage >= 90 ? "destructive" : 
                                    slot.percentage >= 70 ? "secondary" : "default"}
-                            className="backdrop-blur-sm"
                           >
                             {Math.round(slot.percentage)}%
                           </Badge>
@@ -352,9 +350,9 @@ const AdminDashboard = () => {
             </Card>
 
             {/* Participant Types */}
-            <Card className="backdrop-blur-md bg-white/5 border-white/20 shadow-xl">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-foreground/90">Teilnehmer nach Typ</CardTitle>
+                <CardTitle>Teilnehmer nach Typ</CardTitle>
                 <CardDescription>
                   Verteilung der Teilnehmertypen
                 </CardDescription>
@@ -366,13 +364,13 @@ const AdminDashboard = () => {
                   </p>
                 ) : (
                   Object.entries(stats.participantsByType).map(([type, count]) => (
-                    <div key={type} className="space-y-2 p-3 rounded-lg backdrop-blur-sm bg-white/5 border border-white/10">
+                    <div key={type} className="space-y-2">
                       <div className="flex justify-between items-center">
                         <p className="font-medium capitalize">
                           {type === 'child' ? 'Kinder' : 
                            type === 'adult' ? 'Erwachsene' : type}
                         </p>
-                        <Badge variant="outline" className="backdrop-blur-sm">{count}</Badge>
+                        <Badge variant="outline">{count}</Badge>
                       </div>
                       <Progress 
                         value={(count / stats.totalParticipants) * 100} 
@@ -386,9 +384,9 @@ const AdminDashboard = () => {
           </div>
 
           {/* Recent Participants */}
-          <Card className="backdrop-blur-md bg-white/5 border-white/20 shadow-xl">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-foreground/90">Neueste Anmeldungen</CardTitle>
+              <CardTitle>Neueste Anmeldungen</CardTitle>
               <CardDescription>
                 Die letzten 5 registrierten Teilnehmer
               </CardDescription>
@@ -401,7 +399,7 @@ const AdminDashboard = () => {
               ) : (
                 <div className="space-y-4">
                   {stats.recentParticipants.map((participant) => (
-                    <div key={participant.id} className="flex items-center justify-between p-4 rounded-lg backdrop-blur-sm bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-200">
+                    <div key={participant.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div>
                         <p className="font-medium">
                           {participant.first_name} {participant.last_name}
