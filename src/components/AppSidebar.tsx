@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Info, Users, HelpCircle, Phone, User, Shield, LogOut } from "lucide-react";
+import { Home, Info, Users, HelpCircle, Phone, User, Shield, LogOut, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
@@ -15,7 +15,7 @@ import {
 
 const navigationItems = [
   { title: "Anmeldung", url: "/anmeldung", icon: User },
-  { title: "Info", url: "/", icon: Info },
+  { title: "Info", url: "/info", icon: Info },
   { title: "Sponsoren", url: "/sponsoren", icon: Users },
   { title: "FAQs", url: "/faqs", icon: HelpCircle },
   { title: "Kontakt", url: "/kontakt", icon: Phone },
@@ -78,6 +78,14 @@ export function AppSidebar() {
                           <Link to="/admin/data">
                             <User className="h-5 w-5" />
                             <span>Data</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive('/admin')} className="text-base py-3 h-auto">
+                          <Link to="/admin">
+                            <Download className="h-5 w-5" />
+                            <span>Export</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
