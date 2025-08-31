@@ -72,7 +72,7 @@ const Info = () => {
 
   return (
     <Layout>
-      <main className="bg-muted min-h-screen">
+      <main className="min-h-screen">
         <div className="container mx-auto px-4 py-8">
           <Separator className="my-8" />
           <p className="text-center text-lg font-semibold">
