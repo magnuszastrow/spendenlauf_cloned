@@ -92,7 +92,8 @@ const AdminData = () => {
     description: '',
     date: '',
     year: new Date().getFullYear(),
-    registration_open: true
+    registration_open: true,
+    is_active: false
   });
   const [newTimeslots, setNewTimeslots] = useState<Array<{
     name: string;
@@ -201,8 +202,8 @@ const AdminData = () => {
     }
   }, [selectedEvent, user, isAdmin, authLoading]);
 
-  const handleSave = async (table: 'participants' | 'timeslots', data: any) => {
-    const itemType = table === 'participants' ? 'Teilnehmer' : 'Zeitslot';
+  const handleSave = async (table: 'participants' | 'timeslots' | 'events', data: any) => {
+    const itemType = table === 'participants' ? 'Teilnehmer' : table === 'timeslots' ? 'Zeitslot' : 'Event';
     const isUpdate = data.id && !isCreating;
     
     const confirmTitle = isUpdate ? `${itemType} bearbeiten` : `${itemType} erstellen`;
@@ -218,7 +219,7 @@ const AdminData = () => {
     });
   };
 
-  const performSave = async (table: 'participants' | 'timeslots', data: any) => {
+  const performSave = async (table: 'participants' | 'timeslots' | 'events', data: any) => {
     try {
       // Ensure event_id is set to selected event for new items
       if (!data.event_id && selectedEvent) {
@@ -248,7 +249,9 @@ const AdminData = () => {
       setEditingItem(null);
       setIsCreating(false);
       setConfirmDialog({ ...confirmDialog, open: false });
-      if (selectedEvent) {
+      if (table === 'events') {
+        await loadEvents();
+      } else if (selectedEvent) {
         loadEventData(selectedEvent);
       }
     } catch (error) {
@@ -261,8 +264,8 @@ const AdminData = () => {
     }
   };
 
-  const handleDelete = async (table: 'participants' | 'timeslots', id: string, item: any) => {
-    const itemType = table === 'participants' ? 'Teilnehmer' : 'Zeitslot';
+  const handleDelete = async (table: 'participants' | 'timeslots' | 'events', id: string, item: any) => {
+    const itemType = table === 'participants' ? 'Teilnehmer' : table === 'timeslots' ? 'Zeitslot' : 'Event';
     
     setConfirmDialog({
       open: true,
@@ -273,7 +276,7 @@ const AdminData = () => {
     });
   };
 
-  const performDelete = async (table: 'participants' | 'timeslots', id: string) => {
+  const performDelete = async (table: 'participants' | 'timeslots' | 'events', id: string) => {
     try {
       const { error } = await supabase
         .from(table)
@@ -283,7 +286,9 @@ const AdminData = () => {
       if (error) throw error;
       toast({ title: "Erfolgreich", description: "Eintrag wurde gelöscht." });
       setConfirmDialog({ ...confirmDialog, open: false });
-      if (selectedEvent) {
+      if (table === 'events') {
+        await loadEvents();
+      } else if (selectedEvent) {
         loadEventData(selectedEvent);
       }
     } catch (error) {
@@ -296,11 +301,13 @@ const AdminData = () => {
     }
   };
 
-  const getItemDescription = (table: 'participants' | 'timeslots', item: any) => {
+  const getItemDescription = (table: 'participants' | 'timeslots' | 'events', item: any) => {
     if (table === 'participants') {
       return `Name: ${item.first_name} ${item.last_name}\nAlter: ${item.age}\nTyp: ${item.participant_type}\nEmail: ${item.email || 'Nicht angegeben'}`;
-    } else {
+    } else if (table === 'timeslots') {
       return `Name: ${item.name}\nZeit: ${item.time}\nTyp: ${item.type === 'children' ? 'Kinderlauf' : 'Hauptlauf'}\nMax. Teilnehmer: ${item.max_participants}`;
+    } else {
+      return `Name: ${item.name}\nJahr: ${item.year}\nDatum: ${item.date ? new Date(item.date).toLocaleDateString('de-DE') : 'Nicht angegeben'}\nStatus: ${item.is_active ? 'Aktiv' : 'Inaktiv'}`;
     }
   };
 
@@ -332,7 +339,8 @@ const AdminData = () => {
           description: newEvent.description,
           date: newEvent.date || null,
           year: newEvent.year,
-          registration_open: newEvent.registration_open
+          registration_open: newEvent.registration_open,
+          is_active: newEvent.is_active
         })
         .select()
         .single();
@@ -362,7 +370,8 @@ const AdminData = () => {
         description: '',
         date: '',
         year: new Date().getFullYear(),
-        registration_open: true
+        registration_open: true,
+        is_active: false
       });
       setNewTimeslots([
         { name: 'Hauptlauf', time: '10:00', type: 'normal' as const, max_participants: 50, description: '90 Min, 1.3km Runden' }
@@ -603,9 +612,114 @@ const AdminData = () => {
     );
   }
 
+  const renderEventsTable = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Events ({events.length})</h3>
+        <Button 
+          onClick={() => setShowCreateEventDialog(true)}
+          variant="outline"
+        >
+          <Calendar className="w-4 h-4 mr-2" />
+          Neues Event erstellen
+        </Button>
+      </div>
+      
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-border">
+          <thead>
+            <tr className="bg-muted">
+              <th className="border border-border p-2 text-left">Name</th>
+              <th className="border border-border p-2 text-left">Jahr</th>
+              <th className="border border-border p-2 text-left">Datum</th>
+              <th className="border border-border p-2 text-left">Anmeldung</th>
+              <th className="border border-border p-2 text-left">Aktiv</th>
+              <th className="border border-border p-2 text-left">Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {renderLimitedTable(events, (event) => (
+              <tr key={event.id} className="hover:bg-muted/50">
+                {editingItem?.id === event.id ? (
+                  <EventEditRow 
+                    event={editingItem}
+                    onSave={(data) => handleSave('events' as any, data)}
+                    onCancel={() => setEditingItem(null)}
+                    onChange={setEditingItem}
+                  />
+                ) : (
+                  <>
+                    <td className="border border-border p-2">{event.name}</td>
+                    <td className="border border-border p-2">{event.year}</td>
+                    <td className="border border-border p-2">
+                      {event.date ? new Date(event.date).toLocaleDateString('de-DE') : '-'}
+                    </td>
+                    <td className="border border-border p-2">
+                      <span className={`px-2 py-1 rounded text-xs ${event.registration_open ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {event.registration_open ? 'Offen' : 'Geschlossen'}
+                      </span>
+                    </td>
+                    <td className="border border-border p-2">
+                      <span className={`px-2 py-1 rounded text-xs ${(event as any).is_active ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {(event as any).is_active ? 'Aktiv' : 'Inaktiv'}
+                      </span>
+                    </td>
+                    <td className="border border-border p-2">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingItem({...event, is_active: (event as any).is_active || false})}
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete('events' as any, event.id, event)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+            {isCreating && activeTab === 'events' && (
+              <EventEditRow 
+                event={editingItem}
+                onSave={(data) => handleSave('events' as any, data)}
+                onCancel={() => {
+                  setEditingItem(null);
+                  setIsCreating(false);
+                }}
+                onChange={setEditingItem}
+              />
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   return (
     <Layout>
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* Event Management Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Event Verwaltung</CardTitle>
+            <CardDescription>
+              Verwalten Sie Events und deren Einstellungen
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {renderEventsTable()}
+          </CardContent>
+        </Card>
+
+        {/* Data Management Card */}
         <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -669,18 +783,6 @@ const AdminData = () => {
                 </TabsContent>
               </Tabs>
             )}
-            
-            {/* Add Event Button */}
-            <div className="mt-6 pt-4 border-t">
-              <Button
-                onClick={() => setShowCreateEventDialog(true)}
-                className="w-full sm:w-auto"
-                variant="outline"
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                Neues Event erstellen
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -744,6 +846,15 @@ const AdminData = () => {
                   onCheckedChange={(checked) => setNewEvent({...newEvent, registration_open: !!checked})}
                 />
                 <Label htmlFor="registration-open">Anmeldung geöffnet</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is-active"
+                  checked={newEvent.is_active}
+                  onCheckedChange={(checked) => setNewEvent({...newEvent, is_active: !!checked})}
+                />
+                <Label htmlFor="is-active">Event aktiv setzen</Label>
               </div>
             </div>
 
@@ -985,6 +1096,58 @@ const TimeslotEditRow = ({ timeslot, onSave, onCancel, onChange }: any) => (
     <td className="border border-border p-2">
       <div className="flex gap-1">
         <Button size="sm" onClick={() => onSave(timeslot)}>
+          <Save className="w-3 h-3" />
+        </Button>
+        <Button size="sm" variant="outline" onClick={onCancel}>
+          <X className="w-3 h-3" />
+        </Button>
+      </div>
+    </td>
+  </>
+);
+
+// Edit row components
+const EventEditRow = ({ event, onSave, onCancel, onChange }: any) => (
+  <>
+    <td className="border border-border p-2">
+      <Input
+        value={event.name}
+        onChange={(e) => onChange({...event, name: e.target.value})}
+        placeholder="Event Name"
+        className="text-sm"
+      />
+    </td>
+    <td className="border border-border p-2">
+      <Input
+        type="number"
+        value={event.year}
+        onChange={(e) => onChange({...event, year: parseInt(e.target.value)})}
+        className="text-sm"
+      />
+    </td>
+    <td className="border border-border p-2">
+      <Input
+        type="date"
+        value={event.date || ''}
+        onChange={(e) => onChange({...event, date: e.target.value})}
+        className="text-sm"
+      />
+    </td>
+    <td className="border border-border p-2">
+      <Checkbox
+        checked={event.registration_open}
+        onCheckedChange={(checked) => onChange({...event, registration_open: !!checked})}
+      />
+    </td>
+    <td className="border border-border p-2">
+      <Checkbox
+        checked={event.is_active}
+        onCheckedChange={(checked) => onChange({...event, is_active: !!checked})}
+      />
+    </td>
+    <td className="border border-border p-2">
+      <div className="flex gap-1">
+        <Button size="sm" onClick={() => onSave(event)}>
           <Save className="w-3 h-3" />
         </Button>
         <Button size="sm" variant="outline" onClick={onCancel}>
