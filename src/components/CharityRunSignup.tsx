@@ -1419,13 +1419,13 @@ export const CharityRunSignup = () => {
                        />
                      </div>
 
-                     <Button 
-                      type="submit" 
-                      variant="hero" 
-                      size="lg" 
-                      className="w-full" 
-                      disabled={isSubmitting}
-                    >
+                      <Button 
+                       type="submit" 
+                       variant="hero" 
+                       size="lg" 
+                       className="w-full" 
+                       disabled={isSubmitting || !einzelanmeldungForm.formState.isValid}
+                     >
                       {isSubmitting ? (
                         <>
                           <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground" />
@@ -1767,13 +1767,13 @@ export const CharityRunSignup = () => {
                        />
                      </div>
 
-                    <Button
-                     type="submit" 
-                     variant="hero" 
-                     size="lg" 
-                     className="w-full"
-                     disabled={isSubmitting}
-                   >
+                     <Button
+                      type="submit" 
+                      variant="hero" 
+                      size="lg" 
+                      className="w-full"
+                      disabled={isSubmitting || !teamForm.formState.isValid}
+                    >
                      {isSubmitting ? (
                        <>
                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground" />
@@ -2107,13 +2107,13 @@ export const CharityRunSignup = () => {
                        />
                      </div>
 
-                    <Button 
-                     type="submit" 
-                     variant="sport" 
-                     size="lg" 
-                     className="w-full"
-                     disabled={isSubmitting}
-                   >
+                     <Button 
+                      type="submit" 
+                      variant="sport" 
+                      size="lg" 
+                      className="w-full"
+                      disabled={isSubmitting || !kinderlaufForm.formState.isValid}
+                    >
                      {isSubmitting ? (
                        <>
                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground" />
