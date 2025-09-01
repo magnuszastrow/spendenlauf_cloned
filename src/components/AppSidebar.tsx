@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { User, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPublicNavigationItems, getAdminNavigationItems } from "@/config/navigation";
+import spendenlaufLogo from "@/assets/spendenlauf_logo.png";
 import {
   Sidebar,
   SidebarContent,
@@ -27,9 +28,11 @@ export function AppSidebar() {
     <Sidebar className="bg-highlight border-r-0">
       <SidebarHeader className="bg-highlight">
         <div className="flex items-center gap-2 px-2">
-          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-            <span className="text-xs">Logo</span>
-          </div>
+          <img 
+            src={spendenlaufLogo} 
+            alt="Spendenlauf Logo" 
+            className="w-8 h-8 rounded-full"
+          />
           <h2 className="font-semibold text-foreground">Spendenlauf</h2>
         </div>
       </SidebarHeader>

@@ -31,10 +31,10 @@ const Impressum = () => {
               <p>
                 <span className="font-medium">E-Mail:</span>{" "}
                 <a 
-                  href="mailto:onboarding@resend.dev"
+                  href="mailto:spendenlauf.lueneburg@gmail.com"
                   className="text-primary hover:underline transition-colors"
                 >
-                  onboarding@resend.dev
+                  spendenlauf.lueneburg@gmail.com
                 </a>
               </p>
             </div>

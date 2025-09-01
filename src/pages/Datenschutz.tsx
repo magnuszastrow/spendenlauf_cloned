@@ -39,8 +39,8 @@ const Datenschutz = () => {
               </p>
               <p>
                 <span className="font-medium">E-Mail:</span>{" "}
-                <a href="mailto:onboarding@resend.dev" className="text-primary hover:underline">
-                  onboarding@resend.dev
+                <a href="mailto:spendenlauf.lueneburg@gmail.com" className="text-primary hover:underline">
+                  spendenlauf.lueneburg@gmail.com
                 </a>
               </p>
             </div>

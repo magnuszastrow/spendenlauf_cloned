@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import loewenherzLogo from "@/assets/Löwenherz-Logo_quer.jpg";
 
 const Info = () => {
   const navigate = useNavigate();
@@ -214,9 +215,11 @@ const Info = () => {
                     rel="noopener noreferrer"
                     className="block mb-4"
                   >
-                    <div className="w-full h-20 bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground border">
-                      Löwenherz Logo
-                    </div>
+                    <img 
+                      src={loewenherzLogo} 
+                      alt="Kinderhospiz Löwenherz Logo" 
+                      className="w-full h-20 object-contain rounded-md border"
+                    />
                   </a>
                   
                   <p className="text-justify leading-relaxed">
