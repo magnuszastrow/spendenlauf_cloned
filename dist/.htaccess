@@ -1,0 +1,11 @@
+# SPA routing for React on Plesk/Apache
+RewriteEngine On
+Options -MultiViews
+
+# Serve existing files/directories as-is
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Everything else -> index.html (enables /info, /admin/dashboard, etc.)
+RewriteRule ^ index.html [L]
