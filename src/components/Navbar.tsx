@@ -16,8 +16,8 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Desktop/Tablet Fixed Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 hidden md:flex bg-highlight px-4 py-2 shadow-sm">
+      {/* Desktop Fixed Header (large screens only) */}
+      <nav className="fixed top-0 left-0 right-0 z-50 hidden lg:flex bg-highlight px-4 py-2 shadow-sm">
         <div className="container mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
@@ -60,8 +60,8 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile Header with Sidebar Trigger */}
-      <nav className="fixed top-0 left-0 right-0 z-50 md:hidden bg-highlight px-4 py-2 shadow-sm">
+      {/* Mobile/Tablet Header with Sidebar Trigger */}
+      <nav className="fixed top-0 left-0 right-0 z-50 lg:hidden bg-highlight px-4 py-2 shadow-sm">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
