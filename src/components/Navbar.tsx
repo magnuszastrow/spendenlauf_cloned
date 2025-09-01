@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, User, Shield } from "lucide-react";
 import { getPublicNavigationItems, getAdminNavigationItems } from "@/config/navigation";
+import spendenlaufLogo from "@/assets/spendenlauf_logo.png";
 
 const Navbar = () => {
   const location = useLocation();
@@ -20,9 +21,11 @@ const Navbar = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 hidden md:flex bg-highlight px-4 py-2 shadow-sm">
         <div className="container mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-xs">Logo</span>
-            </div>
+            <img 
+              src={spendenlaufLogo} 
+              alt="Spendenlauf Logo" 
+              className="h-10 w-auto rounded-full"
+            />
           </Link>
           
           <div className="flex items-center space-x-8">
@@ -64,9 +67,11 @@ const Navbar = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 md:hidden bg-highlight px-4 py-2 shadow-sm">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-xs">Logo</span>
-            </div>
+            <img 
+              src={spendenlaufLogo} 
+              alt="Spendenlauf Logo" 
+              className="h-10 w-auto rounded-full"
+            />
           </Link>
 
           <SidebarTrigger className="text-black" />

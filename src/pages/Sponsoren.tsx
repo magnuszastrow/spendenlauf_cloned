@@ -1,5 +1,7 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
+import rotaryLogo from "@/assets/logo_rotary_lueneburg.png";
+import wnmLogo from "@/assets/logo_wnm.svg";
 
 interface Plan {
   id: string;
@@ -64,8 +66,11 @@ const Sponsoren = () => {
             <div className="flex items-center justify-center p-4 bg-card rounded-lg border border-border">
               <a href="https://www.wnm.de" target="_blank" rel="noopener noreferrer">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary mb-1">WNM</div>
-                  <div className="text-sm text-muted-foreground">Partner</div>
+                  <img 
+                    src={wnmLogo} 
+                    alt="WNM Logo" 
+                    className="h-16 w-auto mx-auto mb-2"
+                  />
                 </div>
               </a>
             </div>
@@ -73,8 +78,11 @@ const Sponsoren = () => {
             <div className="flex items-center justify-center p-4 bg-card rounded-lg border border-border">
               <a href="https://lueneburg.rotary.de/" target="_blank" rel="noopener noreferrer">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary mb-1">Rotary</div>
-                  <div className="text-sm text-muted-foreground">Lüneburg</div>
+                  <img 
+                    src={rotaryLogo} 
+                    alt="Rotary Lüneburg Logo" 
+                    className="h-16 w-auto mx-auto mb-2"
+                  />
                 </div>
               </a>
             </div>
