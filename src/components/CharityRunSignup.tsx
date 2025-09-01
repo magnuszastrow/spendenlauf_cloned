@@ -486,6 +486,7 @@ export const CharityRunSignup = () => {
         description: "Bitte warten Sie einen Moment bevor Sie es erneut versuchen.",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
@@ -496,6 +497,7 @@ export const CharityRunSignup = () => {
         description: "Teamname darf nur Buchstaben, Zahlen, Bindestriche und Leerzeichen enthalten.",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
@@ -507,6 +509,7 @@ export const CharityRunSignup = () => {
           description: "Namen dürfen nur Buchstaben, Bindestriche und Leerzeichen enthalten.",
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
       if (!validateEmail(member.email)) {
@@ -515,6 +518,7 @@ export const CharityRunSignup = () => {
           description: `Ungültige E-Mail-Adresse für ${member.first_name} ${member.last_name}.`,
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
     }
@@ -525,6 +529,7 @@ export const CharityRunSignup = () => {
         description: "Bitte geben Sie eine gültige Team-E-Mail-Adresse ein.",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
@@ -823,6 +828,8 @@ export const CharityRunSignup = () => {
         description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1688,12 +1695,6 @@ export const CharityRunSignup = () => {
                     </Button>
                   </div>
 
-                  <div className="p-4 bg-accent/10 border border-accent/20 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      <Clock className="inline h-4 w-4 mr-2" />
-                      Zeitslots werden automatisch zugewiesen: Teammitglieder (ab 16 Jahre) starten beim Hauptlauf.
-                    </p>
-                   </div>
 
                     {/* Legal Checkboxes */}
                     <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
