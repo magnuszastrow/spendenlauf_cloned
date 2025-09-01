@@ -41,7 +41,7 @@ const Info = () => {
       try {
         const { data, error } = await supabase
           .from("timeslots")
-          .select("id, name, time, Description")
+          .select("id, name, time, description")
           .eq("event_id", activeEvent.id)
           .order("time");
         
@@ -125,7 +125,7 @@ const Info = () => {
                         {timeslots.map((slot: any) => (
                           <li key={slot.id}>
                             <strong>{formatTime(slot.time)}</strong> – {slot.name}
-                            {slot.Description && ` – ${slot.Description}`}
+                            {slot.description && ` – ${slot.description}`}
                           </li>
                         ))}
                       </ul>
