@@ -34,7 +34,7 @@ const HeroBanner = () => {
       className={
         // Smaller hero on mobile so the visible area aligns with the top ~2/3 of the photo
         "header relative flex items-center justify-center " +
-        "h-[clamp(220px,32vh,300px)] md:h-[clamp(400px,50vh,600px)] " +
+        "h-[clamp(300px,32vh,300px)] md:h-[clamp(400px,50vh,600px)] " +
         "overflow-hidden"
       }
     >
