@@ -577,7 +577,7 @@ export const CharityRunSignup = () => {
         
         if (conflictingTeam) {
           console.error('Team name already exists (normalized):', { original: data.team_name, conflicting: conflictingTeam.name });
-          throw new Error(`Teamname schon vergeben - wenn du dich einem Team hinzufügen willst brauchst du dessen Team ID: ${conflictingTeam.readable_team_id}`);
+          throw new Error(`Teamname "${conflictingTeam.name}" ist bereits vergeben. Bitte wähle einen anderen Teamnamen für dein neues Team oder melde dich einzeln an, um dem bestehenden Team beizutreten.`);
         }
       }
 
