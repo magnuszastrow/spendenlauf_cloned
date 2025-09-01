@@ -14,8 +14,8 @@ const Layout = ({ children, showHero = true }: LayoutProps) => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex flex-col bg-background w-full">
-        {/* Sidebar - visible on mobile and tablet */}
-        <div className="lg:hidden">
+        {/* Mobile sidebar - only visible on mobile */}
+        <div className="md:hidden">
           <AppSidebar />
         </div>
         
