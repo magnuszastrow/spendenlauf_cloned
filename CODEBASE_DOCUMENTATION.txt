@@ -1,0 +1,243 @@
+Spendenlauf Website – Codebase Documentation
+
+1) Purpose and High-Level Overview
+- This repository contains a React + TypeScript single-page application (SPA) for a charity run (Spendenlauf) with pages for information, signup, and an admin area.
+- The app uses Tailwind CSS for styling, shadcn/ui components for consistent UI primitives, react-router for routing, react-hook-form + zod for form handling and validation, and Supabase for auth and backend services (including an Edge Function for confirmation emails and SQL migrations for schema).
+- There are effectively two similar apps in this repository:
+  - Root app (primary): src/, public/, supabase/, build configured with Vite.
+  - Nested app copy (secondary): spendenlauf-bw-lg/ with its own src/, public/, supabase/, and Vite config. Treat it as a sibling project or environment-specific variant. Keep them in sync or plan to deprecate one.
+
+2) Runtime Architecture
+- SPA bootstrapped by Vite. Entry is src/main.tsx -> renders src/App.tsx into #root in index.html.
+- App composition (src/App.tsx): wraps the entire app in providers
+  - QueryClientProvider (@tanstack/react-query) for data fetching cache and async state
+  - TooltipProvider (shadcn/ui) for tooltips
+  - AuthProvider (custom context) for Supabase auth state and admin checks
+  - Toaster and Sonner (shadcn/ui toasts + sonner) for notifications
+  - BrowserRouter with <Routes> mapping to page components under src/pages
+- Pages are lightweight containers that use shared layout and UI components.
+- Admin area has dedicated routes (/admin, /admin/dashboard, /admin/data).
+
+3) Routing
+- Implemented with react-router-dom in src/App.tsx
+  - "/" and "/info": Info landing
+  - "/sponsoren": Sponsors
+  - "/faqs": FAQs
+  - "/kontakt": Contact
+  - "/impressum": Legal imprint
+  - "/datenschutz": Privacy policy
+  - "/anmeldung": Signup (forms with validation)
+  - "/auth": Auth helper/login
+  - "/admin": Legacy export page
+  - "/admin/dashboard": Admin dashboard
+  - "/admin/data": Admin data management
+- The nested app spendenlauf-bw-lg/src/App.tsx has nearly identical routes (its "/" points to Index).
+
+4) UI Layer and Design System
+- Tailwind CSS configured in tailwind.config.ts; main styles imported via src/index.css.
+- shadcn/ui components live in src/components/ui/*.tsx (and mirrored under spendenlauf-bw-lg/src/components/ui/):
+  - Common primitives: button.tsx, card.tsx, checkbox.tsx, input.tsx, label.tsx, progress.tsx, radio-group.tsx, separator.tsx, sheet.tsx, sidebar.tsx, skeleton.tsx, tabs.tsx, toast.tsx, toaster.tsx, tooltip.tsx, dropdown-menu.tsx
+  - Notification UIs: ui/sonner.tsx, ui/toaster.tsx
+- Component aliasing is defined in components.json to allow imports like:
+  - components: @/components
+  - ui: @/components/ui
+  - lib: @/lib
+  - hooks: @/hooks
+  - utils: @/lib/utils
+- Global layout components in src/components:
+  - Layout.tsx: Composes the page shell: mobile sidebar, Navbar, optional HeroBanner, Footer, and content area. Prop showHero toggles the hero.
+  - Navbar.tsx: Top navigation.
+  - AppSidebar.tsx: Sidebar implementation, mobile-first with SidebarProvider.
+  - HeroBanner.tsx: Visual hero section.
+  - Footer.tsx: Site footer.
+  - ConfirmDialog.tsx (root app only): Reusable confirmation dialog for critical actions (used by admin tools).
+
+5) Forms, Validation, and Zod Schemas
+- Forms are built with react-hook-form and validated via zod + @hookform/resolvers/zod.
+- The primary (and most detailed) zod schemas are defined inline within the signup component:
+  - src/components/CharityRunSignup.tsx
+    - einzelanmeldungSchema: Validates individual signup fields (first_name, last_name, email, age, gender, optional timeslot_id, team choice, and mandatory consents). Includes refinements:
+      - If join_existing_team is true, require team_id
+      - If age >= 10, require timeslot_id
+    - teamMemberSchema: Validates each team member (name, email, age, gender)
+    - teamSchema: Validates a team signup (team_name, optional shared email usage, timeslot selection, team_members array, and consents)
+    - kinderlaufSchema: Validates children’s run (array of children with first_name, last_name, age, gender; plus parent contact, optional team join, consents)
+    - These schemas are wired into react-hook-form via zodResolver and appropriate defaultValues. useFieldArray manages dynamic rows (team members, children).
+  - Mirrored file in spendenlauf-bw-lg/src/components/CharityRunSignup.tsx with the same validation approach.
+- Security helpers (email/name/phone validation, rate limit checks) come from src/lib/security.ts and are imported into the signup component.
+
+6) State Management and Contexts
+- Auth Context: src/contexts/AuthContext.tsx
+  - Provides current user, admin checks, and auth-related actions via Supabase.
+  - Used by pages/components to gate admin routes/features.
+- React Query: Initialized in App.tsx for caching and async operations; useQuery/useMutation patterns can be adopted in features.
+
+7) Supabase Integration
+- Client bootstrapping: src/integrations/supabase/client.ts
+  - Creates and exports a typed Supabase client configured for the app.
+- Types: src/integrations/supabase/types.ts
+  - Generated or curated type definitions aligned with the database schema.
+- Edge Function: supabase/functions/send-confirmation-email
+  - index.ts: HTTP handler that sends signup confirmation emails
+  - _templates/confirmation-email.tsx: Email template in TSX (React-based templating)
+- Supabase Configuration and Migrations:
+  - supabase/config.toml: Local CLI project configuration
+  - supabase/migrations/*.sql: SQL migrations defining and evolving the database schema (tables like participants, teams, timeslots, consents, etc.). The root app has 27 migration files; the nested app has 21. Ask the team to consolidate or ensure alignment if both apps are maintained.
+
+8) Pages (src/pages)
+- Index.tsx: Landing with CTA and admin quick-links when an admin user is present.
+- Info.tsx: General information about the event.
+- Sponsoren.tsx: Sponsors overview.
+- FAQs.tsx: Frequently asked questions.
+- Kontakt.tsx: Contact page.
+- Impressum.tsx: Legal notice.
+- Datenschutz.tsx: Privacy policy.
+- Anmeldung.tsx: High-level page composing the signup experience (integrates CharityRunSignup and form flow).
+- Auth.tsx: Authentication-related UI for users/admins.
+- Admin.tsx: Legacy admin export view.
+- AdminDashboard.tsx: Modern admin dashboard entry.
+- AdminData.tsx: Admin data management; uses dialogs and confirms for destructive operations.
+
+9) Reusable Hooks and Utilities
+- Hooks:
+  - src/hooks/use-mobile.tsx: Utility to detect and adapt to mobile viewport.
+  - src/hooks/use-toast.ts: Toast utilities for consistent UX; wraps shadcn toasts.
+- Utils:
+  - src/lib/utils.ts: Utility helpers (e.g., cn className merger used by shadcn/ui components).
+  - src/lib/security.ts: Security and validation utilities (rate-limiting, input validation helpers for email/name/phone). Imported by forms like CharityRunSignup.
+
+10) Assets and Static Files
+- Public assets: public/ contains favicon and placeholder assets served statically.
+- App assets: src/assets/ contains images and logos used in components/pages.
+- Build artifacts: dist/ contains production build output (index.html and optimized assets).
+
+11) Configuration and Build
+- Vite configuration: vite.config.ts controls build and dev server; tsconfig*.json configure TypeScript; postcss.config.js and tailwind.config.ts handle styling pipeline.
+- components.json defines shadcn/ui aliases and defaults (style, TSX, Tailwind integration paths). Mirrored both at repo root and in spendenlauf-bw-lg/.
+- package.json: scripts and dependencies. The nested project spendenlauf-bw-lg has its own package.json/scripts.
+
+12) Duplicate/Nested Project: spendenlauf-bw-lg/
+- Structure mirrors the root app with its own src/, public/, supabase/, configs, and UI components.
+- If both are active, align:
+  - Routes and pages
+  - shadcn/ui component variants and styles
+  - Supabase client config and migrations (root has more migrations than nested)
+- If the nested app is deprecated, remove it to reduce maintenance.
+
+13) How Things Fit Together (End-to-End Signup Flow)
+- Routing: User navigates to /anmeldung -> page renders the signup component.
+- UI + Forms: CharityRunSignup.tsx renders tabs/sections for individual, team, and children’s run signup.
+- Validation: Each form section uses a zod schema (einzelanmeldungSchema, teamSchema, kinderlaufSchema) for synchronous validation via zodResolver.
+- Security helpers: validateEmail/Name/Phone and checkRateLimit applied to reduce abuse and ensure valid input.
+- Submission: On submit, data is validated client-side and then sent to backend (Supabase). Confirmation email is sent via Edge Function send-confirmation-email.
+- Notifications: Success/error feedback shown via Toaster/Sonner.
+
+14) Conventions and Best Practices Used
+- TypeScript-first: Strong typing of forms via z.infer<typeof schema> to keep form types in sync with validation.
+- UI consistency: All inputs/buttons/etc. pulled from shadcn/ui primitives. Favor composition over custom one-offs.
+- Tailwind utility classes for layout and spacing, combined with cn helper.
+- React Query available for any data fetching to ensure caching and mutation patterns are consistent.
+
+15) Where to Add or Change Things
+- Add a new page: Create src/pages/NewPage.tsx, add a <Route> in src/App.tsx, and link it from Navbar or appropriate page.
+- Add a new form: Create a component in src/components/, define its zod schema(s) close to where the form lives or in a dedicated file under src/lib/validation if reused. Wire up with react-hook-form + zodResolver. Use inputs from @/components/ui.
+- Update validation rules: Edit the corresponding zod schema in CharityRunSignup.tsx (or your form file). Keep defaultValues and types (z.infer) in sync. For server-side, also update Supabase constraints/migrations as needed.
+- Add a new UI primitive: Create under src/components/ui following shadcn conventions; export in the file and import via alias @/components/ui.
+- Touch Supabase schema: Create a new SQL migration under supabase/migrations/ with clear, idempotent DDL; update types in src/integrations/supabase/types.ts.
+
+16) Notable Files and Their Responsibilities
+- src/main.tsx: App bootstrap.
+- src/App.tsx: Providers and routing.
+- src/components/Layout.tsx: Page shell (Navbar, Sidebar, HeroBanner, Footer).
+- src/components/CharityRunSignup.tsx: Signup flow UI, zod schemas, react-hook-form integration, dynamic field arrays.
+- src/lib/security.ts: Input validation helpers and rate limiting.
+- src/integrations/supabase/client.ts: Supabase client creation.
+- supabase/functions/send-confirmation-email/index.ts: Edge Function to send emails.
+- supabase/migrations/*.sql: Database schema evolution.
+
+17) Zod Schemas – Deep Dive (client-side)
+- einzelanmeldungSchema
+  - first_name: string().min(2)
+  - last_name: string().min(2)
+  - email: string().email()
+  - age: number().min(3).max(110)
+  - gender: enum(["männlich","weiblich","divers"])
+  - timeslot_id: string().optional()
+  - join_existing_team: boolean().default(false)
+  - team_name: string().optional()
+  - team_id: string().optional()
+  - liability_waiver: boolean().refine(val === true)
+  - privacy_consent: boolean().refine(val === true)
+  - future_event_consent: boolean().optional()
+  - refine: if join_existing_team -> require team_id; if age >= 10 -> require timeslot_id
+- teamMemberSchema
+  - first_name/last_name: string().min(2)
+  - email: string().email()
+  - age: number().min(16).max(99)
+  - gender: enum as above
+- teamSchema
+  - team_name: string(...) (implementation continues in file)
+  - use_shared_email/shared_email (pattern present in defaultValues, validated in schema)
+  - team_members: array(teamMemberSchema)
+  - timeslot_id: string()
+  - liability_waiver/privacy_consent/future_event_consent
+- kinderlaufSchema
+  - children: array({ first_name, last_name, age, gender })
+  - parent_name/email/phone
+  - team_name/join_existing_team/existing_team_id optional
+  - liability_waiver/privacy_consent/future_event_consent
+
+18) shadcn/ui – What and Why
+- Local, type-safe UI primitives to avoid vendor lock-in and ensure consistent styling.
+- Variants (e.g., Button variants: default, destructive, outline, secondary, ghost, link, hero, sport) handled via class-variance-authority (CVA) in ui/button.tsx.
+- All components accept className for Tailwind customization and use the cn() utility.
+- Tooltips, toasts, sidebar, dialogs, etc., are provided as composable primitives.
+
+19) Dist and Deployment Artifacts
+- dist/: Production build output (index.html, assets/*). Do not edit by hand; generated by Vite build.
+- public/: Static assets copied to final build as-is.
+
+20) Environment and Configuration Notes
+- Tailwind classes rely on the content paths in tailwind.config.ts to pick up all components/pages.
+- Supabase keys and URLs should be configured via environment variables (Vite env files) and consumed in src/integrations/supabase/client.ts.
+- If building/serving both root and spendenlauf-bw-lg apps, run installs and builds in each project directory.
+
+21) Next Steps and Suggestions
+- Consolidate the nested spendenlauf-bw-lg project with the root app to avoid divergence (migrations differ in count).
+- Consider extracting form zod schemas into src/lib/validation/*.ts if reused across multiple components/pages.
+- Add server-side validation and RLS policies in Supabase aligned with client-side zod schemas.
+- Add integration tests for the signup flow and admin data actions.
+
+Appendix A – Directory Map (root app)
+- src/
+  - App.tsx (routing + providers)
+  - main.tsx (bootstrap)
+  - index.css (styles)
+  - assets/ (images)
+  - components/
+    - Layout.tsx, Navbar.tsx, AppSidebar.tsx, HeroBanner.tsx, Footer.tsx
+    - CharityRunSignup.tsx (forms + zod schemas)
+    - ConfirmDialog.tsx
+    - ui/ (shadcn components)
+  - contexts/
+    - AuthContext.tsx
+  - hooks/
+    - use-mobile.tsx, use-toast.ts
+  - integrations/
+    - supabase/
+      - client.ts, types.ts
+  - lib/
+    - security.ts, utils.ts
+  - pages/
+    - Admin.tsx, AdminDashboard.tsx, AdminData.tsx, Anmeldung.tsx, Auth.tsx, Datenschutz.tsx, FAQs.tsx, Impressum.tsx, Index.tsx, Info.tsx, Kontakt.tsx, Sponsoren.tsx
+- public/
+  - favicon.ico, placeholder.svg
+- supabase/
+  - config.toml, functions/send-confirmation-email/*, migrations/*.sql
+- dist/
+  - build artifacts
+
+Appendix B – Directory Map (nested spendenlauf-bw-lg)
+- Mirrors the root structure with its own src/, public/, supabase/, and configs. Keep aligned or deprecate.
+
+End of documentation.
