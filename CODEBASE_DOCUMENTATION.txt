@@ -5,7 +5,6 @@ Spendenlauf Website – Codebase Documentation
 - The app uses Tailwind CSS for styling, shadcn/ui components for consistent UI primitives, react-router for routing, react-hook-form + zod for form handling and validation, and Supabase for auth and backend services (including an Edge Function for confirmation emails and SQL migrations for schema).
 - There are effectively two similar apps in this repository:
   - Root app (primary): src/, public/, supabase/, build configured with Vite.
-  - Nested app copy (secondary): spendenlauf-bw-lg/ with its own src/, public/, supabase/, and Vite config. Treat it as a sibling project or environment-specific variant. Keep them in sync or plan to deprecate one.
 
 2) Runtime Architecture
 - SPA bootstrapped by Vite. Entry is src/main.tsx -> renders src/App.tsx into #root in index.html.
